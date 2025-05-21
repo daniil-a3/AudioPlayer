@@ -9,28 +9,36 @@ public class AudioPlayer extends JFrame {
 		frame.setVisible(true);
 	}
 	
-	public void AudioPlayerGUI() {
+	public AudioPlayer() {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 272, 264);
+		setBounds(100, 100, 640, 480);
 		JPanel contentPane=new JPanel();
-		//contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
 		contentPane.setLayout(null);
 		
 		JButton backButton=new JButton("| <");
+		backButton.setBounds(10, 10, 50, 50);
+		
 		JButton playButton=new JButton(">");
+		playButton.setBounds(80, 10, 50, 50);
+		
 		JButton stopButton=new JButton("[]");
+		stopButton.setBounds(150, 10, 50, 50);
+		
 		JButton nextButton=new JButton("> |");
+		nextButton.setBounds(220, 10, 50, 50);
+		
 		JButton muteButton=new JButton(">/]");
+		muteButton.setBounds(290, 10, 50, 50);
+		
 		JButton openButton=new JButton("^");
+		openButton.setBounds(360, 10, 50, 50);
 		
-		getContentPane().add(backButton);
-		getContentPane().add(playButton);
-		getContentPane().add(stopButton);
-		getContentPane().add(nextButton);
-		getContentPane().add(muteButton);
-		getContentPane().add(openButton);
-		
-		pack();
+		contentPane.add(backButton);
+		contentPane.add(playButton);
+		contentPane.add(stopButton);
+		contentPane.add(nextButton);
+		contentPane.add(muteButton);
+		contentPane.add(openButton);
 	}
 }
