@@ -118,9 +118,11 @@ public class AudioPlayer extends JFrame {
 	private void playButton_mouseClicked(MouseEvent e) {
 		try {
 			clip.start();
+			playButton.setText("| |");
 			clip.addLineListener(e1 -> {
 				if (e1.getType() == LineEvent.Type.STOP) {
 					clip.stop();
+					playButton.setText(">");
 					clip.close();
 					loadFile();
 				}
