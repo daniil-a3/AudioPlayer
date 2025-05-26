@@ -165,13 +165,58 @@ public class AudioPlayer extends JFrame {
 					if (f.isDirectory()) {
 						return true;
 					} else {
-						String filename = f.getName().toLowerCase();
+						String filename=f.getName().toLowerCase();
 						return filename.endsWith(".wav")
 						|| filename.endsWith(".mp3") 
 						|| filename.endsWith(".aac") ;
 					}
 				}
 			});
+		fileChooser.addChoosableFileFilter(new FileFilter() {
+
+				public String getDescription() {
+					return "WAVE File (*.wav)";
+				}
+
+				public boolean accept(File f) {
+					if (f.isDirectory()) {
+						return true;
+					} else {
+						String filename=f.getName().toLowerCase();
+						return filename.endsWith(".wav");
+					}
+				}
+			});
+		fileChooser.addChoosableFileFilter(new FileFilter() {
+
+			public String getDescription() {
+				return "MP3 File (*.mp3)";
+			}
+
+			public boolean accept(File f) {
+				if (f.isDirectory()) {
+					return true;
+				} else {
+					String filename=f.getName().toLowerCase();
+					return filename.endsWith(".mp3");
+				}
+			}
+		});
+		fileChooser.addChoosableFileFilter(new FileFilter() {
+
+			public String getDescription() {
+				return "AAC File (*.aac)";
+			}
+
+			public boolean accept(File f) {
+				if (f.isDirectory()) {
+					return true;
+				} else {
+					String filename=f.getName().toLowerCase();
+					return filename.endsWith(".aac");
+				}
+			}
+		});
 		int result=fileChooser.showOpenDialog(fileChooser);
 		if (result==JFileChooser.APPROVE_OPTION) {
 			File selectedFile=fileChooser.getSelectedFile();
