@@ -121,10 +121,7 @@ public class AudioPlayer extends JFrame {
 			playButton.setText("| |");
 			clip.addLineListener(e1 -> {
 				if (e1.getType() == LineEvent.Type.STOP) {
-					clip.stop();
-					playButton.setText(">");
-					clip.close();
-					loadFile();
+					stopPlay(); //why does replaying it only work the second time!?
 				}
 			});
 		} catch (Exception e1) {
@@ -134,7 +131,12 @@ public class AudioPlayer extends JFrame {
 	}
 	
 	private void stopButton_mouseClicked(MouseEvent e) {
-		Toolkit.getDefaultToolkit().beep();
+		try {
+			stopPlay();
+		} catch (Exception e1) {
+			Toolkit.getDefaultToolkit().beep();
+			System.err.println(e1);
+		}
 	}
 	
 	private void nextButton_mouseClicked(MouseEvent e) {
@@ -260,8 +262,15 @@ public class AudioPlayer extends JFrame {
 		return "";
 	}
 	
-	public static void showErrorMessage(String message, String title) {
+	private static void showErrorMessage(String message, String title) {
 		JOptionPane.showMessageDialog(null, message, title,
 			JOptionPane.ERROR_MESSAGE);
+	}
+	
+	private void stopPlay() {
+		clip.stop();
+		playButton.setText(">");
+		clip.close();
+		loadFile();
 	}
 }
