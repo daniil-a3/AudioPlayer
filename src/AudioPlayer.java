@@ -2,10 +2,13 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileFilter;
 
 import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -29,8 +32,10 @@ public class AudioPlayer extends JFrame {
 	File currentFile;
 	Clip clip;
 	AudioInputStream audioInputStream;
+	Long currentFrame=0L;
 	
 	JLabel currentTrack=new JLabel("No file selected");
+	JLabel timeElapsed=new JLabel("0");
 	JButton backButton, playButton, stopButton, nextButton,
 	muteButton, openButton;
 	
@@ -48,9 +53,10 @@ public class AudioPlayer extends JFrame {
 		contentPane.setLayout(null);
 		
 		currentTrack.setBounds(10, 10, 620, 20);
+		timeElapsed.setBounds(10, 40, 620, 20);
 		
 		backButton=new JButton("| <");
-		backButton.setBounds(10, 40, 50, 50);
+		backButton.setBounds(10, 70, 50, 50);
 		backButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				backButton_mouseClicked(e);
@@ -58,7 +64,7 @@ public class AudioPlayer extends JFrame {
 		});
 		
 		playButton=new JButton(">");
-		playButton.setBounds(80, 40, 50, 50);
+		playButton.setBounds(80, 70, 50, 50);
 		playButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				playButton_mouseClicked(e);
@@ -66,7 +72,7 @@ public class AudioPlayer extends JFrame {
 		});
 		
 		stopButton=new JButton("[]");
-		stopButton.setBounds(150, 40, 50, 50);
+		stopButton.setBounds(150, 70, 50, 50);
 		stopButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				stopButton_mouseClicked(e);
@@ -74,7 +80,7 @@ public class AudioPlayer extends JFrame {
 		});
 		
 		nextButton=new JButton("> |");
-		nextButton.setBounds(220, 40, 50, 50);
+		nextButton.setBounds(220, 70, 50, 50);
 		nextButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				nextButton_mouseClicked(e);
@@ -82,7 +88,7 @@ public class AudioPlayer extends JFrame {
 		});
 		
 		muteButton=new JButton(">/]");
-		muteButton.setBounds(290, 40, 50, 50);
+		muteButton.setBounds(290, 70, 50, 50);
 		muteButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				muteButton_mouseClicked(e);
@@ -90,7 +96,7 @@ public class AudioPlayer extends JFrame {
 		});
 		
 		openButton=new JButton("^");
-		openButton.setBounds(360, 40, 50, 50);
+		openButton.setBounds(360, 70, 50, 50);
 		openButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				try {
@@ -102,6 +108,18 @@ public class AudioPlayer extends JFrame {
 			}
 		});
 		
+		Timer timer=new Timer(20, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					currentFrame=clip.getMicrosecondPosition();
+				} catch (Exception e1) {
+				}
+				String readableTime=String.valueOf(((double) currentFrame)/1000000);
+				timeElapsed.setText(readableTime);
+			}
+		});
+		timer.start();
+		/// DO NOT FORGET ABOUT THESE!!!!!!!!!!
 		contentPane.add(currentTrack);
 		contentPane.add(backButton);
 		contentPane.add(playButton);
@@ -109,6 +127,7 @@ public class AudioPlayer extends JFrame {
 		contentPane.add(nextButton);
 		contentPane.add(muteButton);
 		contentPane.add(openButton);
+		contentPane.add(timeElapsed);
 	}
 	
 	private void backButton_mouseClicked(MouseEvent e) {
@@ -120,8 +139,9 @@ public class AudioPlayer extends JFrame {
 			clip.start();
 			playButton.setText("| |");
 			clip.addLineListener(e1 -> {
-				if (e1.getType() == LineEvent.Type.STOP) {
-					stopPlay(); //why does replaying it only work the second time!?
+				if (e1.getType()==LineEvent.Type.STOP) {
+					stopPlay();
+					stopPlay();
 				}
 			});
 		} catch (Exception e1) {
@@ -242,7 +262,7 @@ public class AudioPlayer extends JFrame {
 			System.out.println("No file chosen");
 		} catch (UnsupportedAudioFileException e1) {
 			showErrorMessage(String.format
-			("File extension \"%s\" is currently not supported.",
+			("File extension \".%s\" is currently not supported.",
 			getFileExt(currentFile.toString())),
 			"Unsupported File Type");
 		} catch (Exception e1) {
