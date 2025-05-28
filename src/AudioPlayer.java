@@ -2,8 +2,11 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JSlider;
 import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileFilter;
 
 import java.awt.Toolkit;
@@ -25,7 +28,7 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 
-public class AudioPlayer extends JFrame {
+public class AudioPlayer extends JFrame implements ChangeListener {
 	boolean isMuted=false;
 	int volume=100;
 	
@@ -37,11 +40,13 @@ public class AudioPlayer extends JFrame {
 	boolean stopped=true;
 	boolean paused=false;
 	boolean invalidFile=false;
+	boolean sliderUsed=false;
 	
 	JLabel currentTrack=new JLabel("No file selected");
 	JLabel timeElapsed=new JLabel("0");
 	JButton backButton, playButton, stopButton, nextButton,
 	muteButton, openButton;
+	JSlider playPos=new JSlider(JSlider.HORIZONTAL,0,0,0);
 	
 	public static void main(String[] args) {
 		AudioPlayer frame=new AudioPlayer();
@@ -58,9 +63,12 @@ public class AudioPlayer extends JFrame {
 		
 		currentTrack.setBounds(10, 10, 620, 20);
 		timeElapsed.setBounds(10, 40, 620, 20);
+		playPos.setBounds(10, 60, 620, 30);
+		playPos.setPaintTicks(true);
+		playPos.addChangeListener(this);
 		
 		backButton=new JButton("| <");
-		backButton.setBounds(10, 70, 50, 50);
+		backButton.setBounds(10, 100, 50, 50);
 		backButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				backButton_mouseClicked(e);
@@ -68,7 +76,7 @@ public class AudioPlayer extends JFrame {
 		});
 		
 		playButton=new JButton(">");
-		playButton.setBounds(80, 70, 50, 50);
+		playButton.setBounds(80, 100, 50, 50);
 		playButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				playButton_mouseClicked(e);
@@ -76,7 +84,7 @@ public class AudioPlayer extends JFrame {
 		});
 		
 		stopButton=new JButton("[]");
-		stopButton.setBounds(150, 70, 50, 50);
+		stopButton.setBounds(150, 100, 50, 50);
 		stopButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				stopButton_mouseClicked(e);
@@ -84,7 +92,7 @@ public class AudioPlayer extends JFrame {
 		});
 		
 		nextButton=new JButton("> |");
-		nextButton.setBounds(220, 70, 50, 50);
+		nextButton.setBounds(220, 100, 50, 50);
 		nextButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				nextButton_mouseClicked(e);
@@ -92,7 +100,7 @@ public class AudioPlayer extends JFrame {
 		});
 		
 		muteButton=new JButton("> ]");
-		muteButton.setBounds(290, 70, 50, 50);
+		muteButton.setBounds(290, 100, 50, 50);
 		muteButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				muteButton_mouseClicked(e);
@@ -100,7 +108,7 @@ public class AudioPlayer extends JFrame {
 		});
 		
 		openButton=new JButton("^");
-		openButton.setBounds(360, 70, 50, 50);
+		openButton.setBounds(360, 100, 50, 50);
 		openButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				try {
@@ -115,10 +123,31 @@ public class AudioPlayer extends JFrame {
 		Timer timer=new Timer(20, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					if (!paused) currentFrame=clip.getMicrosecondPosition();
+					if (!paused)
+						currentFrame=clip.getMicrosecondPosition();
 					trackLength=clip.getMicrosecondLength();
-				} catch (Exception e1) {
+					playPos.setMaximum(Math.toIntExact(trackLength));
+					playPos.setValue(Math.toIntExact(currentFrame));
+					if (trackLength<=10000000) { // 10 seconds
+						playPos.setMinorTickSpacing(100000); // 0.1 s
+						playPos.setMajorTickSpacing(1000000); // 1 s
+					} else if (trackLength<=120000000) { // 2 mins
+							playPos.setMinorTickSpacing(1000000); // 1 s
+							playPos.setMajorTickSpacing(10000000); // 10 s
+					} else if (trackLength<=300000000) { // 5 mins
+						playPos.setMinorTickSpacing(5000000); // 5 s
+						playPos.setMajorTickSpacing(30000000); // 30 s
+					} else if (trackLength<=1200000000) { // 20 mins
+						playPos.setMinorTickSpacing(10000000); // 10 s
+						playPos.setMajorTickSpacing(60000000); // 1 min
+					} else {
+						playPos.setMinorTickSpacing(30000000); // 30 s
+						playPos.setMajorTickSpacing(60000000); // 1 min
+					}
+				} catch (NullPointerException e1) {
 					;
+				} catch (Exception e1) {
+					System.err.println(e1);
 				}
 				timeElapsed.setText(humanTime(currentFrame)+"/"+humanTime(trackLength));
 			}
@@ -134,6 +163,7 @@ public class AudioPlayer extends JFrame {
 		contentPane.add(muteButton);
 		contentPane.add(openButton);
 		contentPane.add(timeElapsed);
+		contentPane.add(playPos);
 	}
 	
 	private void backButton_mouseClicked(MouseEvent e) {
@@ -144,6 +174,11 @@ public class AudioPlayer extends JFrame {
 		try {
 			if (invalidFile) throw new UnsupportedAudioFileException();
 			if (stopped) {
+				if (currentFrame.compareTo(trackLength)==0
+				&& trackLength!=null) {
+					currentFrame=0L;
+					clip.setMicrosecondPosition(currentFrame);
+				}
 				clip.start();
 				stopped=false;
 				playButton.setText("| |");
@@ -155,13 +190,23 @@ public class AudioPlayer extends JFrame {
 				});
 			} else {
 				if (paused) {
-					//clip.close();
-					//loadFile();
+					//resumes
 					clip.setMicrosecondPosition(currentFrame);
 					paused=false;
+					if (currentFrame==trackLength && trackLength!=null) {
+						currentFrame=0L;
+						clip.setMicrosecondPosition(currentFrame);
+					}
 					clip.start();
 					playButton.setText("| |");
+					clip.addLineListener(e1 -> {
+						if (e1.getType()==LineEvent.Type.STOP) {
+							stopPlay();
+							stopPlay();
+						}
+					});
 				} else {
+					//pauses
 					paused=true;
 					playButton.setText(">");
 					currentFrame=clip.getMicrosecondPosition();
@@ -313,6 +358,10 @@ public class AudioPlayer extends JFrame {
 			("File extension \".%s\" is currently not supported.",
 			getFileExt(currentFile.toString())),
 			"Unsupported File Type");
+		} catch (LineUnavailableException e1) {
+			invalidFile=true;
+			showErrorMessage(e1.toString(),
+			"Unsupported Format");
 		} catch (Exception e1) {
 			invalidFile=true;
 			Toolkit.getDefaultToolkit().beep();
@@ -351,6 +400,18 @@ public class AudioPlayer extends JFrame {
 					((int) (((double) time)/60000000)), //mins
 					((int) (((double) time)/1000000)%60), //secs
 					((int) (((double) time)/10000)%100)); //millis
+		}
+	}
+
+	public void stateChanged(ChangeEvent e) {
+		JSlider source=(JSlider)e.getSource();
+		sliderUsed=source.getValueIsAdjusting();
+		if (sliderUsed) { /// CANNOT BE ADJUSTED WHEN PAUSED
+			try {
+				clip.setMicrosecondPosition(source.getValue());
+			} catch (Exception e1) {
+				Toolkit.getDefaultToolkit().beep();
+			}
 		}
 	}
 }
