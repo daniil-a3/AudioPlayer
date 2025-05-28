@@ -32,7 +32,11 @@ public class AudioPlayer extends JFrame {
 	File currentFile;
 	Clip clip;
 	AudioInputStream audioInputStream;
-	Long currentFrame=0L;
+	Long currentFrame=null;
+	Long trackLength=null;
+	boolean stopped=true;
+	boolean paused=false;
+	boolean invalidFile=false;
 	
 	JLabel currentTrack=new JLabel("No file selected");
 	JLabel timeElapsed=new JLabel("0");
@@ -87,7 +91,7 @@ public class AudioPlayer extends JFrame {
 			}
 		});
 		
-		muteButton=new JButton(">/]");
+		muteButton=new JButton("> ]");
 		muteButton.setBounds(290, 70, 50, 50);
 		muteButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
@@ -111,14 +115,16 @@ public class AudioPlayer extends JFrame {
 		Timer timer=new Timer(20, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					currentFrame=clip.getMicrosecondPosition();
+					if (!paused) currentFrame=clip.getMicrosecondPosition();
+					trackLength=clip.getMicrosecondLength();
 				} catch (Exception e1) {
+					;
 				}
-				String readableTime=String.valueOf(((double) currentFrame)/1000000);
-				timeElapsed.setText(readableTime);
+				timeElapsed.setText(humanTime(currentFrame)+"/"+humanTime(trackLength));
 			}
 		});
 		timer.start();
+		
 		/// DO NOT FORGET ABOUT THESE!!!!!!!!!!
 		contentPane.add(currentTrack);
 		contentPane.add(backButton);
@@ -136,14 +142,33 @@ public class AudioPlayer extends JFrame {
 	
 	private void playButton_mouseClicked(MouseEvent e) {
 		try {
-			clip.start();
-			playButton.setText("| |");
-			clip.addLineListener(e1 -> {
-				if (e1.getType()==LineEvent.Type.STOP) {
-					stopPlay();
-					stopPlay();
+			if (invalidFile) throw new UnsupportedAudioFileException();
+			if (stopped) {
+				clip.start();
+				stopped=false;
+				playButton.setText("| |");
+				clip.addLineListener(e1 -> {
+					if (e1.getType()==LineEvent.Type.STOP) {
+						stopPlay();
+						stopPlay();
+					}
+				});
+			} else {
+				if (paused) {
+					//clip.close();
+					//loadFile();
+					clip.setMicrosecondPosition(currentFrame);
+					paused=false;
+					clip.start();
+					playButton.setText("| |");
+				} else {
+					paused=true;
+					playButton.setText(">");
+					currentFrame=clip.getMicrosecondPosition();
+					clip.stop();
 				}
-			});
+			}
+			//System.out.println(String.format("paused: %b\n stopped: %b", paused, stopped));
 		} catch (Exception e1) {
 			Toolkit.getDefaultToolkit().beep();
 			System.err.println(e1);
@@ -153,6 +178,8 @@ public class AudioPlayer extends JFrame {
 	private void stopButton_mouseClicked(MouseEvent e) {
 		try {
 			stopPlay();
+			stopped=true;
+			paused=false;
 		} catch (Exception e1) {
 			Toolkit.getDefaultToolkit().beep();
 			System.err.println(e1);
@@ -166,10 +193,10 @@ public class AudioPlayer extends JFrame {
 	private void muteButton_mouseClicked(MouseEvent e) {
 		if (volume>0) {
 			volume=0;
-			muteButton.setText("> ]");
+			muteButton.setText(">/]");
 		} else {
 			volume=100;
-			muteButton.setText(">/]");
+			muteButton.setText("> ]");
 		}
 	}
 	
@@ -180,7 +207,7 @@ public class AudioPlayer extends JFrame {
 		fileChooser.setFileFilter(new FileFilter() {
 
 				public String getDescription() {
-					return "All audio files (*.wav, *.mp3, *.aac)";
+					return "All audio files (*.wav, *.mp3, *.aac, *.m4a)";
 				}
 
 				public boolean accept(File f) {
@@ -189,8 +216,9 @@ public class AudioPlayer extends JFrame {
 					} else {
 						String filename=f.getName().toLowerCase();
 						return filename.endsWith(".wav")
-						|| filename.endsWith(".mp3") 
-						|| filename.endsWith(".aac") ;
+						|| filename.endsWith(".mp3")
+						|| filename.endsWith(".aac")
+						|| filename.endsWith(".m4a");
 					}
 				}
 			});
@@ -239,15 +267,33 @@ public class AudioPlayer extends JFrame {
 				}
 			}
 		});
+		fileChooser.addChoosableFileFilter(new FileFilter() {
+
+			public String getDescription() {
+				return "M4A File (*.m4a)";
+			}
+
+			public boolean accept(File f) {
+				if (f.isDirectory()) {
+					return true;
+				} else {
+					String filename=f.getName().toLowerCase();
+					return filename.endsWith(".m4a");
+				}
+			}
+		});
 		int result=fileChooser.showOpenDialog(fileChooser);
 		if (result==JFileChooser.APPROVE_OPTION) {
 			File selectedFile=fileChooser.getSelectedFile();
 			System.out.println("Selected file: "+selectedFile.getAbsolutePath());
 			currentTrack.setText(selectedFile.getName());
 			currentFile=selectedFile;
+			try {
+				stopPlay();
+			} catch (NullPointerException e1) {
+				loadFile();
+			}
 		}
-		
-		loadFile();
 	}
 	
 	private void loadFile() {
@@ -258,14 +304,17 @@ public class AudioPlayer extends JFrame {
 							.getAbsoluteFile());
 			clip=AudioSystem.getClip();
 			clip.open(audioInputStream);
+			invalidFile=false;
 		} catch (NullPointerException e1) {
 			System.out.println("No file chosen");
 		} catch (UnsupportedAudioFileException e1) {
+			invalidFile=true;
 			showErrorMessage(String.format
 			("File extension \".%s\" is currently not supported.",
 			getFileExt(currentFile.toString())),
 			"Unsupported File Type");
 		} catch (Exception e1) {
+			invalidFile=true;
 			Toolkit.getDefaultToolkit().beep();
 			System.err.println(e1);
 		}
@@ -292,5 +341,16 @@ public class AudioPlayer extends JFrame {
 		playButton.setText(">");
 		clip.close();
 		loadFile();
+	}
+	
+	private String humanTime(Long time) {
+		if (time==null) {
+			return "---:--.--";
+		} else {
+			return String.format("%03d:%02d.%02d",
+					((int) (((double) time)/60000000)), //mins
+					((int) (((double) time)/1000000)%60), //secs
+					((int) (((double) time)/10000)%100)); //millis
+		}
 	}
 }
