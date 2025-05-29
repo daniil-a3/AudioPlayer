@@ -27,6 +27,8 @@ import javax.sound.sampled.LineEvent;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
+import javazoom.jl.player.Player;
+
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 
@@ -37,11 +39,13 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 	File currentFile;
 	Clip clip;
 	AudioInputStream audioInputStream;
+	Player lossyPlayer;
 	Long currentFrame=null;
 	Long trackLength=null;
 	boolean stopped=true;
 	boolean paused=false;
 	boolean invalidFile=false;
+	boolean useClip=true;
 	boolean sliderUsed=false;
 	
 	JLabel currentTrack=new JLabel("No file selected");
@@ -361,6 +365,7 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 	}
 	
 	private void loadFile() {
+		useClip=true;
 		try {
 			System.out.println(currentFile.toString());
 			audioInputStream=AudioSystem.getAudioInputStream
@@ -372,11 +377,17 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 		} catch (NullPointerException e1) {
 			System.out.println("No file chosen");
 		} catch (UnsupportedAudioFileException e1) {
-			invalidFile=true;
-			showErrorMessage(String.format
-			("File extension \".%s\" is currently not supported.",
-			getFileExt(currentFile.toString())),
-			"Unsupported File Type");
+			try {
+				lossyPlayer=new Player(audioInputStream);
+				useClip=false;
+			} catch (Exception e2) {
+				System.err.println(e2);
+				invalidFile=true;
+				showErrorMessage(String.format
+				("File extension \".%s\" is currently not supported.",
+				getFileExt(currentFile.toString())),
+				"Unsupported File Type");
+			}
 		} catch (LineUnavailableException e1) {
 			invalidFile=true;
 			showErrorMessage(e1.toString(),
