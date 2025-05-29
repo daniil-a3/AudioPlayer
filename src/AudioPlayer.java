@@ -12,6 +12,8 @@ import javax.swing.filechooser.FileFilter;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -117,6 +119,22 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 						| IOException e1) {
 					e1.printStackTrace();
 				}
+			}
+		});
+		
+		contentPane.addComponentListener(new ComponentAdapter() {
+			public void componentResized(ComponentEvent e) {
+				int panelWidth=contentPane.getWidth();
+				int panelHeight=contentPane.getHeight();
+				
+				timeElapsed.setBounds(10, panelHeight-120, panelWidth-10, 20);
+				playPos.setBounds(10, panelHeight-100, panelWidth-10, 30);
+				backButton.setBounds(10, panelHeight-60, 50, 50);
+				playButton.setBounds(70, panelHeight-60, 50, 50);
+				stopButton.setBounds(130, panelHeight-60, 50, 50);
+				nextButton.setBounds(190, panelHeight-60, 50, 50);
+				muteButton.setBounds(panelWidth-120, panelHeight-60, 50, 50);
+				openButton.setBounds(panelWidth-60, panelHeight-60, 50, 50);
 			}
 		});
 		
@@ -332,6 +350,7 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 			File selectedFile=fileChooser.getSelectedFile();
 			System.out.println("Selected file: "+selectedFile.getAbsolutePath());
 			currentTrack.setText(selectedFile.getName());
+			setTitle("Audio Player - "+selectedFile.getName());
 			currentFile=selectedFile;
 			try {
 				stopPlay();
@@ -403,11 +422,14 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 		}
 	}
 
-	public void stateChanged(ChangeEvent e) {
+	public void stateChanged(ChangeEvent e){
 		JSlider source=(JSlider)e.getSource();
 		sliderUsed=source.getValueIsAdjusting();
-		if (sliderUsed) { /// CANNOT BE ADJUSTED WHEN PAUSED
+		if (sliderUsed) {
 			try {
+				if (invalidFile) throw new UnsupportedAudioFileException();
+				if (trackLength!=null) 
+					currentFrame=(long) source.getValue();
 				clip.setMicrosecondPosition(source.getValue());
 			} catch (Exception e1) {
 				Toolkit.getDefaultToolkit().beep();
