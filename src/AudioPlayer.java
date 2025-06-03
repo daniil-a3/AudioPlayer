@@ -27,7 +27,8 @@ import javax.sound.sampled.LineEvent;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
-import javazoom.jl.player.Player;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -39,7 +40,7 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 	File currentFile;
 	Clip clip;
 	AudioInputStream audioInputStream;
-	Player lossyPlayer;
+	MediaPlayer lossyPlayer;
 	Long currentFrame=null;
 	Long trackLength=null;
 	boolean stopped=true;
@@ -378,8 +379,8 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 			System.out.println("No file chosen");
 		} catch (UnsupportedAudioFileException e1) {
 			try {
-				lossyPlayer=new Player(audioInputStream);
-				useClip=false;
+				Media lossySource
+				=new Media(currentFile.toString());
 			} catch (Exception e2) {
 				System.err.println(e2);
 				invalidFile=true;
