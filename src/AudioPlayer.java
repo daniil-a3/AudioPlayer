@@ -26,7 +26,7 @@ import javax.sound.sampled.Clip;
 import javax.sound.sampled.LineEvent;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
-
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 
@@ -51,6 +51,15 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 	muteButton, openButton;
 	JSlider playPos=new JSlider(JSlider.HORIZONTAL,0,0,0);
 	
+	ImageIcon backIcon=new ImageIcon("res\\control_previous.png");
+	ImageIcon playIcon=new ImageIcon("res\\control_play.png");
+	ImageIcon pauseIcon=new ImageIcon("res\\control_pause.png");
+	ImageIcon stopIcon=new ImageIcon("res\\control_stop.png");
+	ImageIcon nextIcon=new ImageIcon("res\\control_next.png");
+	ImageIcon muteIcon=new ImageIcon("res\\sound.png");
+	ImageIcon unmuteIcon=new ImageIcon("res\\nosound.png");
+	ImageIcon openIcon=new ImageIcon("res\\control_eject.png");
+	
 	public static void main(String[] args) {
 		AudioPlayer frame=new AudioPlayer();
 		frame.setVisible(true);
@@ -70,48 +79,42 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 		playPos.setPaintTicks(true);
 		playPos.addChangeListener(this);
 		
-		backButton=new JButton("| <");
-		backButton.setBounds(10, 100, 50, 50);
+		backButton=new JButton(backIcon);
 		backButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				backButton_mouseClicked(e);
 			}
 		});
 		
-		playButton=new JButton(">");
-		playButton.setBounds(80, 100, 50, 50);
+		playButton=new JButton(playIcon);
 		playButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				playButton_mouseClicked(e);
 			}
 		});
 		
-		stopButton=new JButton("[]");
-		stopButton.setBounds(150, 100, 50, 50);
+		stopButton=new JButton(stopIcon);
 		stopButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				stopButton_mouseClicked(e);
 			}
 		});
 		
-		nextButton=new JButton("> |");
-		nextButton.setBounds(220, 100, 50, 50);
+		nextButton=new JButton(nextIcon);
 		nextButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				nextButton_mouseClicked(e);
 			}
 		});
 		
-		muteButton=new JButton("> ]");
-		muteButton.setBounds(290, 100, 50, 50);
+		muteButton=new JButton(muteIcon);
 		muteButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				muteButton_mouseClicked(e);
 			}
 		});
 		
-		openButton=new JButton("^");
-		openButton.setBounds(360, 100, 50, 50);
+		openButton=new JButton(openIcon);
 		openButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				try {
@@ -128,14 +131,14 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 				int panelWidth=contentPane.getWidth();
 				int panelHeight=contentPane.getHeight();
 				
-				timeElapsed.setBounds(10, panelHeight-120, panelWidth-10, 20);
-				playPos.setBounds(10, panelHeight-100, panelWidth-10, 30);
-				backButton.setBounds(10, panelHeight-60, 50, 50);
-				playButton.setBounds(70, panelHeight-60, 50, 50);
-				stopButton.setBounds(130, panelHeight-60, 50, 50);
-				nextButton.setBounds(190, panelHeight-60, 50, 50);
-				muteButton.setBounds(panelWidth-120, panelHeight-60, 50, 50);
-				openButton.setBounds(panelWidth-60, panelHeight-60, 50, 50);
+				timeElapsed.setBounds(10, panelHeight-100, panelWidth-10, 20);
+				playPos.setBounds(10, panelHeight-80, panelWidth-10, 30);
+				backButton.setBounds(10, panelHeight-40, 30, 30);
+				playButton.setBounds(50, panelHeight-40, 30, 30);
+				stopButton.setBounds(90, panelHeight-40, 30, 30);
+				nextButton.setBounds(130, panelHeight-40, 30, 30);
+				muteButton.setBounds(panelWidth-80, panelHeight-40, 30, 30);
+				openButton.setBounds(panelWidth-40, panelHeight-40, 30, 30);
 			}
 		});
 		
@@ -200,7 +203,7 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 				}
 				clip.start();
 				stopped=false;
-				playButton.setText("| |");
+				playButton.setIcon(pauseIcon);
 				clip.addLineListener(e1 -> {
 					if (e1.getType()==LineEvent.Type.STOP) {
 						stopPlay();
@@ -217,7 +220,7 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 						clip.setMicrosecondPosition(currentFrame);
 					}
 					clip.start();
-					playButton.setText("| |");
+					playButton.setIcon(pauseIcon);
 					clip.addLineListener(e1 -> {
 						if (e1.getType()==LineEvent.Type.STOP) {
 							stopPlay();
@@ -227,7 +230,7 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 				} else {
 					//pauses
 					paused=true;
-					playButton.setText(">");
+					playButton.setIcon(playIcon);
 					currentFrame=clip.getMicrosecondPosition();
 					clip.stop();
 				}
@@ -257,10 +260,10 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 	private void muteButton_mouseClicked(MouseEvent e) {
 		if (volume>0) {
 			volume=0;
-			muteButton.setText(">/]");
+			muteButton.setIcon(unmuteIcon);
 		} else {
 			volume=100;
-			muteButton.setText("> ]");
+			muteButton.setIcon(muteIcon);
 		}
 	}
 	
@@ -408,7 +411,7 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 	
 	private void stopPlay() {
 		clip.stop();
-		playButton.setText(">");
+		playButton.setIcon(playIcon);
 		clip.close();
 		loadFile();
 	}
