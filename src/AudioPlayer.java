@@ -27,9 +27,6 @@ import javax.sound.sampled.LineEvent;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
-
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 
@@ -40,7 +37,6 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 	File currentFile;
 	Clip clip;
 	AudioInputStream audioInputStream;
-	MediaPlayer lossyPlayer;
 	Long currentFrame=null;
 	Long trackLength=null;
 	boolean stopped=true;
@@ -272,7 +268,7 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 	throws UnsupportedAudioFileException, IOException {
 		JFileChooser fileChooser=new JFileChooser();
 		fileChooser.setAcceptAllFileFilterUsed(false);
-		fileChooser.setFileFilter(new FileFilter() {
+		fileChooser.addChoosableFileFilter(new FileFilter() {
 
 				public String getDescription() {
 					return "All audio files (*.wav, *.mp3, *.aac, *.m4a)";
@@ -290,7 +286,7 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 					}
 				}
 			});
-		fileChooser.addChoosableFileFilter(new FileFilter() {
+		fileChooser.setFileFilter(new FileFilter() {
 
 				public String getDescription() {
 					return "WAVE File (*.wav)";
@@ -378,17 +374,11 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 		} catch (NullPointerException e1) {
 			System.out.println("No file chosen");
 		} catch (UnsupportedAudioFileException e1) {
-			try {
-				Media lossySource
-				=new Media(currentFile.toString());
-			} catch (Exception e2) {
-				System.err.println(e2);
-				invalidFile=true;
-				showErrorMessage(String.format
-				("File extension \".%s\" is currently not supported.",
-				getFileExt(currentFile.toString())),
-				"Unsupported File Type");
-			}
+			invalidFile=true;
+			showErrorMessage(String.format
+			("File extension \".%s\" is currently not supported.",
+			getFileExt(currentFile.toString())),
+			"Unsupported File Type");
 		} catch (LineUnavailableException e1) {
 			invalidFile=true;
 			showErrorMessage(e1.toString(),
