@@ -23,6 +23,7 @@ import java.io.IOException;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
+import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.LineEvent;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
@@ -30,9 +31,10 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 
-public class AudioPlayer extends JFrame implements ChangeListener {
+public class AudioPlayer extends JFrame {
 	boolean isMuted=false;
 	int volume=100;
+	int backupVolume=100;
 	
 	File currentFile;
 	Clip clip;
@@ -41,15 +43,17 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 	Long trackLength=null;
 	boolean stopped=true;
 	boolean paused=false;
+	boolean muted=false;
 	boolean invalidFile=false;
-	boolean useClip=true;
 	boolean sliderUsed=false;
+	FloatControl gainControl;
 	
 	JLabel currentTrack=new JLabel("No file selected");
 	JLabel timeElapsed=new JLabel("0");
 	JButton backButton, playButton, stopButton, nextButton,
 	muteButton, openButton;
 	JSlider playPos=new JSlider(JSlider.HORIZONTAL,0,0,0);
+	JSlider volSlider=new JSlider(JSlider.HORIZONTAL,0,100,0);
 	
 	ImageIcon backIcon=new ImageIcon("res\\control_previous.png");
 	ImageIcon playIcon=new ImageIcon("res\\control_play.png");
@@ -77,7 +81,29 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 		timeElapsed.setBounds(10, 40, 620, 20);
 		playPos.setBounds(10, 60, 620, 30);
 		playPos.setPaintTicks(true);
-		playPos.addChangeListener(this);
+		playPos.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				JSlider source=(JSlider)e.getSource();
+				sliderUsed=source.getValueIsAdjusting();
+				if (sliderUsed) {
+					try {
+						if (invalidFile) throw new UnsupportedAudioFileException();
+						if (trackLength!=null) 
+							currentFrame=(long) source.getValue();
+						clip.setMicrosecondPosition(source.getValue());
+					} catch (Exception e1) {
+						Toolkit.getDefaultToolkit().beep();
+					}
+				}
+			}
+		});
+		volSlider.setValue(100);
+		volSlider.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				JSlider source=(JSlider)e.getSource();
+				volume=source.getValue();
+			}
+		});
 		
 		backButton=new JButton(backIcon);
 		backButton.addMouseListener(new MouseAdapter() {
@@ -133,6 +159,7 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 				
 				timeElapsed.setBounds(10, panelHeight-100, panelWidth-10, 20);
 				playPos.setBounds(10, panelHeight-80, panelWidth-10, 30);
+				volSlider.setBounds(panelWidth-190, panelHeight-40, 100, 30);
 				backButton.setBounds(10, panelHeight-40, 30, 30);
 				playButton.setBounds(50, panelHeight-40, 30, 30);
 				stopButton.setBounds(90, panelHeight-40, 30, 30);
@@ -166,6 +193,14 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 						playPos.setMinorTickSpacing(30000000); // 30 s
 						playPos.setMajorTickSpacing(60000000); // 1 min
 					}
+					//System.out.println(gainControl.getValue());
+					if (!muted) {
+						gainControl.setValue((float)
+							(((Math.log10(Math.pow((float) volume/100, 0.5)))
+								*40)));
+					} else {
+						gainControl.setValue(-80.0f);
+					}
 				} catch (NullPointerException e1) {
 					;
 				} catch (Exception e1) {
@@ -186,6 +221,7 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 		contentPane.add(openButton);
 		contentPane.add(timeElapsed);
 		contentPane.add(playPos);
+		contentPane.add(volSlider);
 	}
 	
 	private void backButton_mouseClicked(MouseEvent e) {
@@ -258,11 +294,11 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 	}
 	
 	private void muteButton_mouseClicked(MouseEvent e) {
-		if (volume>0) {
-			volume=0;
+		if (!muted) {
+			muted=true;
 			muteButton.setIcon(unmuteIcon);
 		} else {
-			volume=100;
+			muted=false;
 			muteButton.setIcon(muteIcon);
 		}
 	}
@@ -365,7 +401,6 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 	}
 	
 	private void loadFile() {
-		useClip=true;
 		try {
 			System.out.println(currentFile.toString());
 			audioInputStream=AudioSystem.getAudioInputStream
@@ -390,6 +425,13 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 			invalidFile=true;
 			Toolkit.getDefaultToolkit().beep();
 			System.err.println(e1);
+		}
+		
+		try {
+			gainControl=(FloatControl) clip.getControl
+					(FloatControl.Type.MASTER_GAIN);
+		} catch (Exception e) {
+			System.err.println(e);
 		}
 	}
 	
@@ -424,21 +466,6 @@ public class AudioPlayer extends JFrame implements ChangeListener {
 					((int) (((double) time)/60000000)), //mins
 					((int) (((double) time)/1000000)%60), //secs
 					((int) (((double) time)/10000)%100)); //millis
-		}
-	}
-
-	public void stateChanged(ChangeEvent e){
-		JSlider source=(JSlider)e.getSource();
-		sliderUsed=source.getValueIsAdjusting();
-		if (sliderUsed) {
-			try {
-				if (invalidFile) throw new UnsupportedAudioFileException();
-				if (trackLength!=null) 
-					currentFrame=(long) source.getValue();
-				clip.setMicrosecondPosition(source.getValue());
-			} catch (Exception e1) {
-				Toolkit.getDefaultToolkit().beep();
-			}
 		}
 	}
 }
