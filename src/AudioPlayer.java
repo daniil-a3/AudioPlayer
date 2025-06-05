@@ -37,7 +37,7 @@ public class AudioPlayer extends JFrame {
 	int backupVolume=100;
 	
 	File currentFile;
-	Clip clip;
+	static Clip clip;
 	AudioInputStream audioInputStream;
 	Long currentFrame=null;
 	Long trackLength=null;
@@ -47,6 +47,10 @@ public class AudioPlayer extends JFrame {
 	boolean invalidFile=false;
 	boolean sliderUsed=false;
 	FloatControl gainControl;
+	Visualizer audioVis=new Visualizer();
+	
+	static int panelWidth=640;
+	static int panelHeight=480;
 	
 	JLabel currentTrack=new JLabel("No file selected");
 	JLabel timeElapsed=new JLabel("0");
@@ -154,11 +158,12 @@ public class AudioPlayer extends JFrame {
 		
 		contentPane.addComponentListener(new ComponentAdapter() {
 			public void componentResized(ComponentEvent e) {
-				int panelWidth=contentPane.getWidth();
-				int panelHeight=contentPane.getHeight();
-				
+				panelWidth=contentPane.getWidth();
+				panelHeight=contentPane.getHeight();
+
+				currentTrack.setBounds(10, 10, panelWidth-10, 20);
 				timeElapsed.setBounds(10, panelHeight-100, panelWidth-10, 20);
-				playPos.setBounds(10, panelHeight-80, panelWidth-10, 30);
+				playPos.setBounds(10, panelHeight-80, panelWidth-20, 30);
 				volSlider.setBounds(panelWidth-190, panelHeight-40, 100, 30);
 				backButton.setBounds(10, panelHeight-40, 30, 30);
 				playButton.setBounds(50, panelHeight-40, 30, 30);
@@ -166,6 +171,7 @@ public class AudioPlayer extends JFrame {
 				nextButton.setBounds(130, panelHeight-40, 30, 30);
 				muteButton.setBounds(panelWidth-80, panelHeight-40, 30, 30);
 				openButton.setBounds(panelWidth-40, panelHeight-40, 30, 30);
+				audioVis.setBounds(10, 30, panelWidth-20, panelHeight-130);
 			}
 		});
 		
@@ -222,6 +228,7 @@ public class AudioPlayer extends JFrame {
 		contentPane.add(timeElapsed);
 		contentPane.add(playPos);
 		contentPane.add(volSlider);
+		contentPane.add(audioVis);
 	}
 	
 	private void backButton_mouseClicked(MouseEvent e) {
