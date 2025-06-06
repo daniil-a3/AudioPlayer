@@ -1,25 +1,28 @@
 import java.awt.Color;
 import java.awt.Graphics;
+import java.io.IOException;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
+import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.JComponent;
 
 public class Visualizer extends JComponent {
-	private Color color;
 	private int[] audioData;
+	private static byte[] byteArray;
 	private static Clip clip;
 	
-	public Visualizer() {
-		color=Color.blue;
+	public Visualizer()
+	throws UnsupportedAudioFileException, IOException {
+		clipToByteArray();
 	}
 	
 	public void paintComponent(Graphics g) {
-		g.setColor(Color.white);
+		g.setColor(Color.black);
 		g.fillRect(0, 0, AudioPlayer.panelWidth, AudioPlayer.panelHeight);
 		try {
-			clip=AudioPlayer.clip;
 			/*int frameSize=clip.getFormat().getFrameSize();
 			System.out.println(frameSize);
 			int frameLength=clip.getFrameLength();
@@ -37,21 +40,36 @@ public class Visualizer extends JComponent {
 				}
 				audioData[i]=sample;
 			}
+			
+			g.setColor(Color.green);
+			//g.drawLine(0, 0, AudioPlayer.panelWidth, AudioPlayer.panelHeight);
+			for (int i=0; i<AudioPlayer.panelWidth; i++) {
+				g.drawLine(i, (audioData[i]/65536)*AudioPlayer.panelHeight, i, (audioData[i]/65536)*AudioPlayer.panelHeight);
+			}
 			System.out.println(audioData);
 		} catch (Exception e) {
 			System.err.println(e);
 		}
 	}
 	
-	public static byte[] clipToByteArray() /*throws IOException*/ {
-		AudioInputStream audioInputStream=clip.getAudioInputStream();
-		AudioFormat audioFormat=clip.getFormat();
-		int frameSize=audioFormat.getFrameSize();
-		int frameLength=clip.getFrameLength();
-		int bufferSize=frameLength * frameSize;
-		byte[] byteArray=new byte[bufferSize];
-		
-		audioInputStream.read(byteArray);
-		return byteArray;
+	public static void clipToByteArray()
+	throws UnsupportedAudioFileException, IOException {
+		try {
+			clip=AudioPlayer.clip;
+			AudioInputStream audioInputStream
+				=AudioSystem.getAudioInputStream(AudioPlayer.currentFile);
+			AudioFormat audioFormat=clip.getFormat();
+			int frameSize=audioFormat.getFrameSize();
+			int frameLength=clip.getFrameLength();
+			int bufferSize=frameLength*frameSize;
+			byteArray=new byte[bufferSize];
+			
+			audioInputStream.read(byteArray);
+			System.out.println(byteArray);
+		} catch (NullPointerException e) {
+			System.err.println(e);
+		} catch (Exception e) {
+			System.err.println(e);
+		}
 	}
 }

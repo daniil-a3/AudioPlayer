@@ -36,7 +36,7 @@ public class AudioPlayer extends JFrame {
 	int volume=100;
 	int backupVolume=100;
 	
-	File currentFile;
+	static File currentFile;
 	static Clip clip;
 	AudioInputStream audioInputStream;
 	Long currentFrame=null;
@@ -47,7 +47,7 @@ public class AudioPlayer extends JFrame {
 	boolean invalidFile=false;
 	boolean sliderUsed=false;
 	FloatControl gainControl;
-	Visualizer audioVis=new Visualizer();
+	Visualizer audioVis;
 	
 	static int panelWidth=640;
 	static int panelHeight=480;
@@ -68,12 +68,16 @@ public class AudioPlayer extends JFrame {
 	ImageIcon unmuteIcon=new ImageIcon("res\\nosound.png");
 	ImageIcon openIcon=new ImageIcon("res\\control_eject.png");
 	
-	public static void main(String[] args) {
+	public static void main(String[] args)
+	throws UnsupportedAudioFileException, IOException {
 		AudioPlayer frame=new AudioPlayer();
 		frame.setVisible(true);
 	}
 	
-	public AudioPlayer() {
+	public AudioPlayer()
+	throws UnsupportedAudioFileException, IOException {
+		audioVis=new Visualizer();
+		
 		setTitle("Audio Player");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 640, 480);
@@ -415,6 +419,7 @@ public class AudioPlayer extends JFrame {
 							.getAbsoluteFile());
 			clip=AudioSystem.getClip();
 			clip.open(audioInputStream);
+			audioVis.clipToByteArray();
 			invalidFile=false;
 		} catch (NullPointerException e1) {
 			System.out.println("No file chosen");
