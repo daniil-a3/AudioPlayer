@@ -14,6 +14,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -29,6 +31,7 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 
 public class AudioPlayer extends JFrame {
@@ -48,6 +51,9 @@ public class AudioPlayer extends JFrame {
 	boolean sliderUsed=false;
 	FloatControl gainControl;
 	Visualizer audioVis;
+	static String visStyle="Horizontal";
+	
+	static int updateFrequencyMs=20;
 	
 	static int panelWidth=640;
 	static int panelHeight=480;
@@ -56,6 +62,8 @@ public class AudioPlayer extends JFrame {
 	JLabel timeElapsed=new JLabel("0");
 	JButton backButton, playButton, stopButton, nextButton,
 	muteButton, openButton;
+	JComboBox visStyleBox;
+	String visOptions[]={"Horizontal", "Oscilloscope", "Bars"};
 	JSlider playPos=new JSlider(JSlider.HORIZONTAL,0,0,0);
 	JSlider volSlider=new JSlider(JSlider.HORIZONTAL,0,100,0);
 	
@@ -160,6 +168,14 @@ public class AudioPlayer extends JFrame {
 			}
 		});
 		
+		visStyleBox=new JComboBox(visOptions);
+		visStyleBox.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				visStyle=(String) visStyleBox.getSelectedItem();
+				System.out.println(visStyle);
+				audioVis.repaint();
+		}});
+		
 		contentPane.addComponentListener(new ComponentAdapter() {
 			public void componentResized(ComponentEvent e) {
 				panelWidth=contentPane.getWidth();
@@ -173,13 +189,14 @@ public class AudioPlayer extends JFrame {
 				playButton.setBounds(50, panelHeight-40, 30, 30);
 				stopButton.setBounds(90, panelHeight-40, 30, 30);
 				nextButton.setBounds(130, panelHeight-40, 30, 30);
+				visStyleBox.setBounds(170, panelHeight-40, 90, 30);
 				muteButton.setBounds(panelWidth-80, panelHeight-40, 30, 30);
 				openButton.setBounds(panelWidth-40, panelHeight-40, 30, 30);
 				audioVis.setBounds(10, 30, panelWidth-20, panelHeight-130);
 			}
 		});
 		
-		Timer timer=new Timer(20, new ActionListener() {
+		Timer timer=new Timer(updateFrequencyMs, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					if (!paused)
@@ -211,6 +228,9 @@ public class AudioPlayer extends JFrame {
 					} else {
 						gainControl.setValue(-80.0f);
 					}
+					if (!stopped) {
+						audioVis.repaint();
+					}
 				} catch (NullPointerException e1) {
 					;
 				} catch (Exception e1) {
@@ -233,6 +253,7 @@ public class AudioPlayer extends JFrame {
 		contentPane.add(playPos);
 		contentPane.add(volSlider);
 		contentPane.add(audioVis);
+		contentPane.add(visStyleBox);
 	}
 	
 	private void backButton_mouseClicked(MouseEvent e) {
@@ -420,6 +441,8 @@ public class AudioPlayer extends JFrame {
 			clip=AudioSystem.getClip();
 			clip.open(audioInputStream);
 			audioVis.clipToByteArray();
+			audioVis.byteToIntArray();
+			audioVis.repaint();
 			invalidFile=false;
 		} catch (NullPointerException e1) {
 			System.out.println("No file chosen");

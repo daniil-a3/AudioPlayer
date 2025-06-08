@@ -13,42 +13,92 @@ public class Visualizer extends JComponent {
 	private int[] audioData;
 	private static byte[] byteArray;
 	private static Clip clip;
+	private int renderedWidth, renderedHeight, renderedFrame;
+	private Long position;
+	private int channels;
 	
 	public Visualizer()
 	throws UnsupportedAudioFileException, IOException {
 		clipToByteArray();
+		byteToIntArray();
 	}
 	
 	public void paintComponent(Graphics g) {
-		g.setColor(Color.black);
-		g.fillRect(0, 0, AudioPlayer.panelWidth, AudioPlayer.panelHeight);
+		renderedWidth=AudioPlayer.panelWidth-20;
+		renderedHeight=AudioPlayer.panelHeight-130;
 		try {
-			/*int frameSize=clip.getFormat().getFrameSize();
-			System.out.println(frameSize);
-			int frameLength=clip.getFrameLength();
-			System.out.println(frameLength);*/
-			
-			int sampleSizeInBits=clip.getFormat().getSampleSizeInBits();
-			boolean isBigEndian=clip.getFormat().isBigEndian();
-			int numSamples=byteArray.length/(sampleSizeInBits/8);
-			audioData=new int[numSamples];
-			for (int i=0; i<numSamples; i++) {
-				int sample=0;
-				for (int j=0; j<sampleSizeInBits/8; j++) {
-					int byteIndex=i*(sampleSizeInBits/8)+(isBigEndian?(sampleSizeInBits/8-1-j):j);
-					sample|=(byteArray[byteIndex]&0xFF)<<(j*8);
-				}
-				audioData[i]=sample;
-			}
-			
-			g.setColor(Color.green);
-			//g.drawLine(0, 0, AudioPlayer.panelWidth, AudioPlayer.panelHeight);
-			for (int i=0; i<AudioPlayer.panelWidth; i++) {
-				g.drawLine(i, (audioData[i]/65536)*AudioPlayer.panelHeight, i, (audioData[i]/65536)*AudioPlayer.panelHeight);
-			}
-			System.out.println(audioData);
+			renderedFrame=(int) clip.getFormat().getSampleRate()
+					/(1000/AudioPlayer.updateFrequencyMs);
 		} catch (Exception e) {
 			System.err.println(e);
+		}
+		
+		g.setColor(Color.black);
+		g.fillRect(0, 0, renderedWidth, renderedHeight);
+		if (AudioPlayer.visStyle=="Horizontal"
+			|| AudioPlayer.visStyle=="Oscilloscope") {
+			if (AudioPlayer.visStyle=="Oscilloscope" && channels==2) {
+				g.setColor(Color.green);
+				try {
+					position=clip.getLongFramePosition();
+					//System.out.println(position);
+					for (int i=position.intValue()*2; i<(position.intValue()+renderedFrame)*2; i+=2) {
+						//System.out.println((i-position.intValue())/channels);
+						g.drawLine(renderedWidth-
+								(((int) (((float) audioData[i]/65536)*renderedWidth)
+								+(renderedWidth/2))%renderedWidth),
+								renderedHeight-
+								(((int) (((float) audioData[i+1]/65536)*renderedHeight)
+								+(renderedHeight/2))%renderedHeight),
+								renderedWidth-
+								(((int) (((float) audioData[i]/65536)*renderedWidth)
+								+(renderedWidth/2))%renderedWidth),
+								renderedHeight-
+								(((int) (((float) audioData[i+1]/65536)*renderedHeight)
+								+(renderedHeight/2))%renderedHeight));
+					}
+				} catch (ArrayIndexOutOfBoundsException e) {
+					System.err.println(e);
+				} catch (Exception e) {
+					g.setColor(Color.green);
+					g.drawLine(renderedWidth/2, renderedHeight/2, renderedWidth/2, renderedHeight/2);
+					System.err.println(e);
+				}
+			} else {
+				try {
+					position=clip.getLongFramePosition();
+					//System.out.println(position);
+					
+					//g.drawLine(0, 0, renderedWidth, renderedHeight); // display size test
+					for (int c=1; c<channels+1; c++) {
+						if (channels==1) {
+							g.setColor(Color.green);
+						} else {
+							try {
+								g.setColor(Color.getHSBColor((float) (c-1)/channels/(c-1), 1.0f, 1.0f));
+							} catch (ArithmeticException e) {
+								g.setColor(Color.red);
+							}
+						}
+						for (int i=position.intValue()*channels+c-1; i<(position.intValue()+renderedWidth+c-1)*channels; i+=channels) {
+							//System.out.println((i-position.intValue())/channels);
+							g.drawLine(i/channels-position.intValue(), renderedHeight-
+									(((int) (((float) audioData[i]/65536)*renderedHeight)
+									+(renderedHeight/2))%renderedHeight),
+								i/channels-position.intValue(), renderedHeight-
+									(((int) (((float) audioData[i]/65536)*renderedHeight)
+									+(renderedHeight/2))%renderedHeight));
+						}
+					}
+					//System.out.println(audioData);
+				} catch (ArrayIndexOutOfBoundsException e) {
+					System.err.println(e);
+				} catch (Exception e) {
+					g.setColor(Color.green);
+					g.drawLine(0, renderedHeight/2, renderedWidth, renderedHeight/2);
+					System.err.println(e);
+				}
+			}
 		}
 	}
 	
@@ -65,9 +115,33 @@ public class Visualizer extends JComponent {
 			byteArray=new byte[bufferSize];
 			
 			audioInputStream.read(byteArray);
-			System.out.println(byteArray);
+			System.out.println(bufferSize);
+			//System.out.println(byteArray);
+			/*for (int i=0; i<bufferSize; i++) {
+				System.out.println(byteArray[i]);
+			}*/
 		} catch (NullPointerException e) {
 			System.err.println(e);
+		} catch (Exception e) {
+			System.err.println(e);
+		}
+	}
+	
+	public void byteToIntArray() {
+		try {
+			int sampleSizeInBits=clip.getFormat().getSampleSizeInBits();
+			boolean isBigEndian=clip.getFormat().isBigEndian();
+			int numSamples=byteArray.length/(sampleSizeInBits/8);
+			audioData=new int[numSamples];
+			for (int i=0; i<numSamples; i++) {
+				int sample=0;
+				for (int j=0; j<sampleSizeInBits/8; j++) {
+					int byteIndex=i*(sampleSizeInBits/8)+(isBigEndian?(sampleSizeInBits/8-1-j):j);
+					sample|=(byteArray[byteIndex]&0xFF)<<(j*8);
+				}
+				audioData[i]=sample;
+			}
+			channels=clip.getFormat().getChannels();
 		} catch (Exception e) {
 			System.err.println(e);
 		}
