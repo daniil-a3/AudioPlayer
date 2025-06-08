@@ -16,6 +16,7 @@ public class Visualizer extends JComponent {
 	private int renderedWidth, renderedHeight, renderedFrame;
 	private Long position;
 	private int channels;
+	private int LINES_USED=0; // TODO MAKE TOGGLABLE
 	
 	public Visualizer()
 	throws UnsupportedAudioFileException, IOException {
@@ -44,6 +45,7 @@ public class Visualizer extends JComponent {
 					//System.out.println(position);
 					for (int i=position.intValue()*2; i<(position.intValue()+renderedFrame)*2; i+=2) {
 						//System.out.println((i-position.intValue())/channels);
+						// TODO with lines looks too bright and spiky...
 						g.drawLine(renderedWidth-
 								(((int) (((float) audioData[i]/65536)*renderedWidth)
 								+(renderedWidth/2))%renderedWidth),
@@ -51,10 +53,10 @@ public class Visualizer extends JComponent {
 								(((int) (((float) audioData[i+1]/65536)*renderedHeight)
 								+(renderedHeight/2))%renderedHeight),
 								renderedWidth-
-								(((int) (((float) audioData[i]/65536)*renderedWidth)
+								(((int) (((float) audioData[i+LINES_USED*2]/65536)*renderedWidth)
 								+(renderedWidth/2))%renderedWidth),
 								renderedHeight-
-								(((int) (((float) audioData[i+1]/65536)*renderedHeight)
+								(((int) (((float) audioData[i+1+LINES_USED*2]/65536)*renderedHeight)
 								+(renderedHeight/2))%renderedHeight));
 					}
 				} catch (ArrayIndexOutOfBoundsException e) {
@@ -86,7 +88,7 @@ public class Visualizer extends JComponent {
 									(((int) (((float) audioData[i]/65536)*renderedHeight)
 									+(renderedHeight/2))%renderedHeight),
 								i/channels-position.intValue(), renderedHeight-
-									(((int) (((float) audioData[i]/65536)*renderedHeight)
+									(((int) (((float) audioData[i+LINES_USED*channels]/65536)*renderedHeight)
 									+(renderedHeight/2))%renderedHeight));
 						}
 					}
