@@ -17,6 +17,8 @@ public class Visualizer extends JComponent {
 	private Long position;
 	private int channels;
 	private int LINES_USED=1; // TODO MAKE TOGGLABLE
+	private int bitDepth;
+	private int bitSign;
 	
 	public Visualizer()
 	throws UnsupportedAudioFileException, IOException {
@@ -27,6 +29,7 @@ public class Visualizer extends JComponent {
 	public void paintComponent(Graphics g) {
 		renderedWidth=AudioPlayer.panelWidth-20;
 		renderedHeight=AudioPlayer.panelHeight-130;
+		int bitAmplitude=(int) Math.pow(2, bitDepth);
 		try {
 			renderedFrame=(int) clip.getFormat().getSampleRate()
 					/(1000/AudioPlayer.updateFrequencyMs);
@@ -61,42 +64,42 @@ public class Visualizer extends JComponent {
 							try {
 								g.setColor(Color.getHSBColor(1.0f/3, 1.0f, 
 										1/(((float) (Math.abs(
-											(((int) (((float) audioData[i+2]/65536)*renderedSize)
-										+(renderedSize/2))%renderedSize)-
-										(((int) (((float) audioData[i]/65536)*renderedSize)
-										+(renderedSize/2))%renderedSize)
+											(((int) (((float) audioData[i+2]/bitAmplitude)*renderedSize)
+										+(renderedSize/2*bitSign))%renderedSize)-
+										(((int) (((float) audioData[i]/bitAmplitude)*renderedSize)
+										+(renderedSize/2*bitSign))%renderedSize)
 												))+
 											(float) (Math.abs(
-												(((int) (((float) audioData[i+3]/65536)*renderedSize)
-											+(renderedSize/2))%renderedSize)-
-											(((int) (((float) audioData[i+1]/65536)*renderedSize)
-											+(renderedSize/2))%renderedSize)
+												(((int) (((float) audioData[i+3]/bitAmplitude)*renderedSize)
+											+(renderedSize/2*bitSign))%renderedSize)-
+											(((int) (((float) audioData[i+1]/bitAmplitude)*renderedSize)
+											+(renderedSize/2*bitSign))%renderedSize)
 													)))/4)));
 							} catch (ArithmeticException e) {
 								g.setColor(Color.getHSBColor(1.0f/3, 0.0f, 1.0f));
 							}
 						}
-						g.drawLine((((int) (((float) audioData[i]/65536)*renderedSize)
-								+(renderedSize/2))%renderedSize)+renderedOffset*isOffsetX,
+						g.drawLine((((int) (((float) audioData[i]/bitAmplitude)*renderedSize)
+								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*isOffsetX,
 								renderedSize-
-								(((int) (((float) audioData[i+1]/65536)*renderedSize)
-								+(renderedSize/2))%renderedSize)+renderedOffset*(1-isOffsetX),
-								(((int) (((float) audioData[i+LINES_USED*2]/65536)*renderedSize)
-								+(renderedSize/2))%renderedSize)+renderedOffset*isOffsetX,
+								(((int) (((float) audioData[i+1]/bitAmplitude)*renderedSize)
+								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*(1-isOffsetX),
+								(((int) (((float) audioData[i+LINES_USED*2]/bitAmplitude)*renderedSize)
+								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*isOffsetX,
 								renderedSize-
-								(((int) (((float) audioData[i+1+LINES_USED*2]/65536)*renderedSize)
-								+(renderedSize/2))%renderedSize)+renderedOffset*(1-isOffsetX));
+								(((int) (((float) audioData[i+1+LINES_USED*2]/bitAmplitude)*renderedSize)
+								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*(1-isOffsetX));
 						if (LINES_USED==1) {
-							g.drawLine((((int) (((float) audioData[i]/65536)*renderedSize)
-								+(renderedSize/2))%renderedSize)+renderedOffset*isOffsetX,
+							g.drawLine((((int) (((float) audioData[i]/bitAmplitude)*renderedSize)
+								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*isOffsetX,
 								renderedSize-
-								(((int) (((float) audioData[i+1]/65536)*renderedSize)
-								+(renderedSize/2))%renderedSize)+renderedOffset*(1-isOffsetX),
-								(((int) (((float) audioData[i]/65536)*renderedSize)
-								+(renderedSize/2))%renderedSize)+renderedOffset*isOffsetX,
+								(((int) (((float) audioData[i+1]/bitAmplitude)*renderedSize)
+								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*(1-isOffsetX),
+								(((int) (((float) audioData[i]/bitAmplitude)*renderedSize)
+								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*isOffsetX,
 								renderedSize-
-								(((int) (((float) audioData[i+1]/65536)*renderedSize)
-								+(renderedSize/2))%renderedSize)+renderedOffset*(1-isOffsetX));
+								(((int) (((float) audioData[i+1]/bitAmplitude)*renderedSize)
+								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*(1-isOffsetX));
 						}
 					}
 				} catch (ArrayIndexOutOfBoundsException e) {
@@ -119,17 +122,41 @@ public class Visualizer extends JComponent {
 							try {
 								g.setColor(Color.getHSBColor((float) (c-1)/channels/(c-1), 1.0f, 1.0f));
 							} catch (ArithmeticException e) {
+								System.err.println(e);
 								g.setColor(Color.red);
 							}
 						}
 						for (int i=position.intValue()*channels+c-1; i<(position.intValue()+renderedWidth+c-1)*channels; i+=channels) {
 							//System.out.println((i-position.intValue())/channels);
+							if (LINES_USED==1) {
+								if (channels==1) {
+									g.setColor(Color.getHSBColor(1.0f/3, 1.0f,
+											1/((float) Math.abs(
+												(renderedHeight-
+												(((int) (((float) audioData[i]/bitAmplitude)*renderedHeight)
+												+(renderedHeight/2*bitSign))%renderedHeight))
+													-(renderedHeight-
+												(((int) (((float) audioData[i+channels]/bitAmplitude)*renderedHeight)
+												+(renderedHeight/2*bitSign))%renderedHeight))
+											)/8+1)));
+								} else {
+									g.setColor(Color.getHSBColor((float) (c-1)/channels/(c-1), 1.0f,
+										1/((float) Math.abs(
+											(renderedHeight-
+											(((int) (((float) audioData[i]/bitAmplitude)*renderedHeight)
+											+(renderedHeight/2*bitSign))%renderedHeight))
+												-(renderedHeight-
+											(((int) (((float) audioData[i+channels]/bitAmplitude)*renderedHeight)
+											+(renderedHeight/2*bitSign))%renderedHeight))
+										)/8+1)));
+								}
+							}
 							g.drawLine(i/channels-position.intValue(), renderedHeight-
-									(((int) (((float) audioData[i]/65536)*renderedHeight)
-									+(renderedHeight/2))%renderedHeight),
+									(((int) (((float) audioData[i]/bitAmplitude)*renderedHeight)
+									+(renderedHeight/2*bitSign))%renderedHeight),
 								i/channels-position.intValue()+LINES_USED, renderedHeight-
-									(((int) (((float) audioData[i+LINES_USED*channels]/65536)*renderedHeight)
-									+(renderedHeight/2))%renderedHeight));
+									(((int) (((float) audioData[i+LINES_USED*channels]/bitAmplitude)*renderedHeight)
+									+(renderedHeight/2*bitSign))%renderedHeight));
 						}
 					}
 					//System.out.println(audioData);
@@ -164,6 +191,10 @@ public class Visualizer extends JComponent {
 			}*/
 		} catch (NullPointerException e) {
 			System.err.println(e);
+		} catch (OutOfMemoryError e) { //occured to me only once, CNR since so I can't test if this error checker has bugs
+			AudioPlayer.showErrorMessage("Ran out of memory trying to load audio file",
+					"File Size Error");
+			byteArray=new byte[0];
 		} catch (Exception e) {
 			System.err.println(e);
 		}
@@ -171,14 +202,19 @@ public class Visualizer extends JComponent {
 	
 	public void byteToIntArray() {
 		try {
-			int sampleSizeInBits=clip.getFormat().getSampleSizeInBits();
+			bitDepth=clip.getFormat().getSampleSizeInBits();
+			if (clip.getFormat().getEncoding().toString()=="PCM_SIGNED") {
+				bitSign=1;
+			} else {
+				bitSign=0;
+			}
 			boolean isBigEndian=clip.getFormat().isBigEndian();
-			int numSamples=byteArray.length/(sampleSizeInBits/8);
+			int numSamples=byteArray.length/(bitDepth/8);
 			audioData=new int[numSamples];
 			for (int i=0; i<numSamples; i++) {
 				int sample=0;
-				for (int j=0; j<sampleSizeInBits/8; j++) {
-					int byteIndex=i*(sampleSizeInBits/8)+(isBigEndian?(sampleSizeInBits/8-1-j):j);
+				for (int j=0; j<bitDepth/8; j++) {
+					int byteIndex=i*(bitDepth/8)+(isBigEndian?(bitDepth/8-1-j):j);
 					sample|=(byteArray[byteIndex]&0xFF)<<(j*8);
 				}
 				audioData[i]=sample;

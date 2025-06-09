@@ -313,6 +313,7 @@ public class AudioPlayer extends JFrame {
 			stopPlay();
 			stopped=true;
 			paused=false;
+			loadFile();
 		} catch (Exception e1) {
 			Toolkit.getDefaultToolkit().beep();
 			System.err.println(e1);
@@ -423,10 +424,12 @@ public class AudioPlayer extends JFrame {
 			setTitle("Audio Player - "+selectedFile.getName());
 			currentFile=selectedFile;
 			try {
-				stopPlay();
-			} catch (NullPointerException e1) {
-				loadFile();
+				if (!paused) stopPlay();
+			} catch (Exception e1) {
+				System.err.println(e1);
 			}
+			currentFrame=0L;
+			loadFile();
 		}
 	}
 	
@@ -479,7 +482,7 @@ public class AudioPlayer extends JFrame {
 		return "";
 	}
 	
-	private static void showErrorMessage(String message, String title) {
+	public static void showErrorMessage(String message, String title) {
 		JOptionPane.showMessageDialog(null, message, title,
 			JOptionPane.ERROR_MESSAGE);
 	}
@@ -488,7 +491,9 @@ public class AudioPlayer extends JFrame {
 		clip.stop();
 		playButton.setIcon(playIcon);
 		clip.close();
-		if (paused==false) stopped=true;
+		if (paused==false) {
+			stopped=true;
+		}
 		loadFile();
 	}
 	
