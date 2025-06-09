@@ -490,6 +490,7 @@ public class AudioPlayer extends JFrame {
 		clip.stop();
 		playButton.setIcon(playIcon);
 		clip.close();
+		stopped=true;
 		loadFile();
 	}
 	

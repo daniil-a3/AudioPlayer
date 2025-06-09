@@ -16,12 +16,12 @@ public class Visualizer extends JComponent {
 	private int renderedWidth, renderedHeight, renderedFrame;
 	private Long position;
 	private int channels;
-	private int LINES_USED=0; // TODO MAKE TOGGLABLE
+	private int LINES_USED=1; // TODO MAKE TOGGLABLE
 	
 	public Visualizer()
 	throws UnsupportedAudioFileException, IOException {
-		clipToByteArray();
-		byteToIntArray();
+		/*clipToByteArray();
+		byteToIntArray();*/
 	}
 	
 	public void paintComponent(Graphics g) {
@@ -43,21 +43,61 @@ public class Visualizer extends JComponent {
 				try {
 					position=clip.getLongFramePosition();
 					//System.out.println(position);
+					int renderedSize, renderedOffset;
+					int isOffsetX;
 					for (int i=position.intValue()*2; i<(position.intValue()+renderedFrame)*2; i+=2) {
 						//System.out.println((i-position.intValue())/channels);
 						// TODO with lines looks too bright and spiky...
-						g.drawLine(renderedWidth-
-								(((int) (((float) audioData[i]/65536)*renderedWidth)
-								+(renderedWidth/2))%renderedWidth),
-								renderedHeight-
-								(((int) (((float) audioData[i+1]/65536)*renderedHeight)
-								+(renderedHeight/2))%renderedHeight),
-								renderedWidth-
-								(((int) (((float) audioData[i+LINES_USED*2]/65536)*renderedWidth)
-								+(renderedWidth/2))%renderedWidth),
-								renderedHeight-
-								(((int) (((float) audioData[i+1+LINES_USED*2]/65536)*renderedHeight)
-								+(renderedHeight/2))%renderedHeight));
+						if (renderedWidth<renderedHeight) {
+							renderedSize=renderedWidth;
+							renderedOffset=(renderedHeight-renderedWidth)/2;
+							isOffsetX=0;
+						} else {
+							renderedSize=renderedHeight;
+							renderedOffset=(renderedWidth-renderedHeight)/2;
+							isOffsetX=1;
+						}
+						if (LINES_USED==1) {
+							try {
+								g.setColor(Color.getHSBColor(1.0f/3, 1.0f, 
+										1/(((float) (Math.abs(
+											(((int) (((float) audioData[i+2]/65536)*renderedSize)
+										+(renderedSize/2))%renderedSize)-
+										(((int) (((float) audioData[i]/65536)*renderedSize)
+										+(renderedSize/2))%renderedSize)
+												))+
+											(float) (Math.abs(
+												(((int) (((float) audioData[i+3]/65536)*renderedSize)
+											+(renderedSize/2))%renderedSize)-
+											(((int) (((float) audioData[i+1]/65536)*renderedSize)
+											+(renderedSize/2))%renderedSize)
+													)))/4)));
+							} catch (ArithmeticException e) {
+								g.setColor(Color.getHSBColor(1.0f/3, 0.0f, 1.0f));
+							}
+						}
+						g.drawLine((((int) (((float) audioData[i]/65536)*renderedSize)
+								+(renderedSize/2))%renderedSize)+renderedOffset*isOffsetX,
+								renderedSize-
+								(((int) (((float) audioData[i+1]/65536)*renderedSize)
+								+(renderedSize/2))%renderedSize)+renderedOffset*(1-isOffsetX),
+								(((int) (((float) audioData[i+LINES_USED*2]/65536)*renderedSize)
+								+(renderedSize/2))%renderedSize)+renderedOffset*isOffsetX,
+								renderedSize-
+								(((int) (((float) audioData[i+1+LINES_USED*2]/65536)*renderedSize)
+								+(renderedSize/2))%renderedSize)+renderedOffset*(1-isOffsetX));
+						if (LINES_USED==1) {
+							g.drawLine((((int) (((float) audioData[i]/65536)*renderedSize)
+								+(renderedSize/2))%renderedSize)+renderedOffset*isOffsetX,
+								renderedSize-
+								(((int) (((float) audioData[i+1]/65536)*renderedSize)
+								+(renderedSize/2))%renderedSize)+renderedOffset*(1-isOffsetX),
+								(((int) (((float) audioData[i]/65536)*renderedSize)
+								+(renderedSize/2))%renderedSize)+renderedOffset*isOffsetX,
+								renderedSize-
+								(((int) (((float) audioData[i+1]/65536)*renderedSize)
+								+(renderedSize/2))%renderedSize)+renderedOffset*(1-isOffsetX));
+						}
 					}
 				} catch (ArrayIndexOutOfBoundsException e) {
 					System.err.println(e);
