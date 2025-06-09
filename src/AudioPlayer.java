@@ -275,7 +275,6 @@ public class AudioPlayer extends JFrame {
 				clip.addLineListener(e1 -> {
 					if (e1.getType()==LineEvent.Type.STOP) {
 						stopPlay();
-						stopPlay();
 					}
 				});
 			} else {
@@ -291,7 +290,6 @@ public class AudioPlayer extends JFrame {
 					playButton.setIcon(pauseIcon);
 					clip.addLineListener(e1 -> {
 						if (e1.getType()==LineEvent.Type.STOP) {
-							stopPlay();
 							stopPlay();
 						}
 					});
@@ -490,7 +488,7 @@ public class AudioPlayer extends JFrame {
 		clip.stop();
 		playButton.setIcon(playIcon);
 		clip.close();
-		stopped=true;
+		if (paused==false) stopped=true;
 		loadFile();
 	}
 	

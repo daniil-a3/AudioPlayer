@@ -127,7 +127,7 @@ public class Visualizer extends JComponent {
 							g.drawLine(i/channels-position.intValue(), renderedHeight-
 									(((int) (((float) audioData[i]/65536)*renderedHeight)
 									+(renderedHeight/2))%renderedHeight),
-								i/channels-position.intValue(), renderedHeight-
+								i/channels-position.intValue()+LINES_USED, renderedHeight-
 									(((int) (((float) audioData[i+LINES_USED*channels]/65536)*renderedHeight)
 									+(renderedHeight/2))%renderedHeight));
 						}
