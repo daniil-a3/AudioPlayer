@@ -16,7 +16,7 @@ public class Visualizer extends JComponent {
 	private int renderedWidth, renderedHeight, renderedFrame;
 	private Long position;
 	private int channels;
-	private int LINES_USED=1; // TODO MAKE TOGGLABLE
+	private int useLines=1;
 	private int bitDepth;
 	private int bitSign;
 	
@@ -50,7 +50,6 @@ public class Visualizer extends JComponent {
 					int isOffsetX;
 					for (int i=position.intValue()*2; i<(position.intValue()+renderedFrame)*2; i+=2) {
 						//System.out.println((i-position.intValue())/channels);
-						// TODO with lines looks too bright and spiky...
 						if (renderedWidth<renderedHeight) {
 							renderedSize=renderedWidth;
 							renderedOffset=(renderedHeight-renderedWidth)/2;
@@ -60,7 +59,7 @@ public class Visualizer extends JComponent {
 							renderedOffset=(renderedWidth-renderedHeight)/2;
 							isOffsetX=1;
 						}
-						if (LINES_USED==1) {
+						if (useLines==1) {
 							try {
 								g.setColor(Color.getHSBColor(1.0f/3, 1.0f, 
 										1/(((float) (Math.abs(
@@ -84,12 +83,12 @@ public class Visualizer extends JComponent {
 								renderedSize-
 								(((int) (((float) audioData[i+1]/bitAmplitude)*renderedSize)
 								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*(1-isOffsetX),
-								(((int) (((float) audioData[i+LINES_USED*2]/bitAmplitude)*renderedSize)
+								(((int) (((float) audioData[i+useLines*2]/bitAmplitude)*renderedSize)
 								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*isOffsetX,
 								renderedSize-
-								(((int) (((float) audioData[i+1+LINES_USED*2]/bitAmplitude)*renderedSize)
+								(((int) (((float) audioData[i+1+useLines*2]/bitAmplitude)*renderedSize)
 								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*(1-isOffsetX));
-						if (LINES_USED==1) {
+						if (useLines==1) {
 							g.drawLine((((int) (((float) audioData[i]/bitAmplitude)*renderedSize)
 								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*isOffsetX,
 								renderedSize-
@@ -128,7 +127,7 @@ public class Visualizer extends JComponent {
 						}
 						for (int i=position.intValue()*channels+c-1; i<(position.intValue()+renderedWidth+c-1)*channels; i+=channels) {
 							//System.out.println((i-position.intValue())/channels);
-							if (LINES_USED==1) {
+							if (useLines==1) {
 								if (channels==1) {
 									g.setColor(Color.getHSBColor(1.0f/3, 1.0f,
 											1/((float) Math.abs(
@@ -154,8 +153,8 @@ public class Visualizer extends JComponent {
 							g.drawLine(i/channels-position.intValue(), renderedHeight-
 									(((int) (((float) audioData[i]/bitAmplitude)*renderedHeight)
 									+(renderedHeight/2*bitSign))%renderedHeight),
-								i/channels-position.intValue()+LINES_USED, renderedHeight-
-									(((int) (((float) audioData[i+LINES_USED*channels]/bitAmplitude)*renderedHeight)
+								i/channels-position.intValue()+useLines, renderedHeight-
+									(((int) (((float) audioData[i+useLines*channels]/bitAmplitude)*renderedHeight)
 									+(renderedHeight/2*bitSign))%renderedHeight));
 						}
 					}
@@ -168,6 +167,8 @@ public class Visualizer extends JComponent {
 					System.err.println(e);
 				}
 			}
+		} else if (AudioPlayer.visStyle=="Bars") {
+			
 		}
 	}
 	
@@ -222,6 +223,14 @@ public class Visualizer extends JComponent {
 			channels=clip.getFormat().getChannels();
 		} catch (Exception e) {
 			System.err.println(e);
+		}
+	}
+	
+	public void toggleLines() {
+		if (useLines==1) {
+			useLines=0;
+		} else {
+			useLines=1;
 		}
 	}
 }

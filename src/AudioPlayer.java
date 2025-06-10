@@ -31,6 +31,7 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 
@@ -64,6 +65,7 @@ public class AudioPlayer extends JFrame {
 	muteButton, openButton;
 	JComboBox visStyleBox;
 	String visOptions[]={"Horizontal", "Oscilloscope", "Bars"};
+	JCheckBox useLines=new JCheckBox("Draw lines");
 	JSlider playPos=new JSlider(JSlider.HORIZONTAL,0,0,0);
 	JSlider volSlider=new JSlider(JSlider.HORIZONTAL,0,100,0);
 	
@@ -113,6 +115,9 @@ public class AudioPlayer extends JFrame {
 				}
 			}
 		});
+		
+		//TODO add .setMnemonic() to each button for convenience
+		
 		volSlider.setValue(100);
 		volSlider.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
@@ -172,7 +177,18 @@ public class AudioPlayer extends JFrame {
 		visStyleBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
 				visStyle=(String) visStyleBox.getSelectedItem();
-				System.out.println(visStyle);
+				if (visStyle=="Bars") {
+					useLines.setEnabled(false);
+				} else {
+					useLines.setEnabled(true);
+				}
+				audioVis.repaint();
+		}});
+		
+		useLines.setSelected(true);
+		useLines.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				audioVis.toggleLines();
 				audioVis.repaint();
 		}});
 		
@@ -190,6 +206,7 @@ public class AudioPlayer extends JFrame {
 				stopButton.setBounds(90, panelHeight-40, 30, 30);
 				nextButton.setBounds(130, panelHeight-40, 30, 30);
 				visStyleBox.setBounds(170, panelHeight-40, 90, 30);
+				useLines.setBounds(270, panelHeight-40, 90, 30);
 				muteButton.setBounds(panelWidth-80, panelHeight-40, 30, 30);
 				openButton.setBounds(panelWidth-40, panelHeight-40, 30, 30);
 				audioVis.setBounds(10, 30, panelWidth-20, panelHeight-130);
@@ -254,6 +271,7 @@ public class AudioPlayer extends JFrame {
 		contentPane.add(volSlider);
 		contentPane.add(audioVis);
 		contentPane.add(visStyleBox);
+		contentPane.add(useLines);
 	}
 	
 	private void backButton_mouseClicked(MouseEvent e) {
