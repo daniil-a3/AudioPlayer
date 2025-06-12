@@ -34,7 +34,7 @@ public class Visualizer extends JComponent {
 			renderedFrame=(int) clip.getFormat().getSampleRate()
 					/(1000/AudioPlayer.updateFrequencyMs);
 		} catch (Exception e) {
-			System.err.println(e);
+			System.err.println("Exception "+e+" occured calculating renderedFrame");
 		}
 		
 		g.setColor(Color.black);
@@ -106,7 +106,7 @@ public class Visualizer extends JComponent {
 				} catch (Exception e) {
 					g.setColor(Color.green);
 					g.drawLine(renderedWidth/2, renderedHeight/2, renderedWidth/2, renderedHeight/2);
-					System.err.println(e);
+					System.err.println("Exception "+e+" occured while drawing 2D oscilloscope");
 				}
 			} else {
 				try {
@@ -164,11 +164,35 @@ public class Visualizer extends JComponent {
 				} catch (Exception e) {
 					g.setColor(Color.green);
 					g.drawLine(0, renderedHeight/2, renderedWidth, renderedHeight/2);
-					System.err.println(e);
+					System.err.println("Exception "+e+" occured while drawing horizontal oscilloscope");
 				}
 			}
 		} else if (AudioPlayer.visStyle=="Bars") {
-			
+			try {
+				//for (int i=0; i<renderedWidth; i++) {
+					/*double frequency=Math.pow(2, (double) i/renderedFrame*clip.getFormat().getSampleRate()/2000);
+					double distance=(clip.getFormat().getSampleRate()/frequency);
+					System.out.println(distance);
+					if (distance<=2) {
+						break;
+					}*/
+				//}
+				position=clip.getLongFramePosition();
+				g.setColor(Color.red);
+				int[] bars=normalize(computeFFT(audioData, position*channels, (position+renderedFrame)*channels), 0, renderedHeight);
+				for (int i=0; i<bars.length; i++) {
+					//System.out.print(bars[i]);
+					//System.out.print(", ");
+					g.drawLine(i, (int) (renderedHeight-((float) Math.log10(bars[i]+1)*renderedHeight/Math.log10(renderedHeight))), i, renderedHeight);
+				}
+				System.out.print("\n");
+			} catch (ArrayIndexOutOfBoundsException e) {
+				System.err.println(e);
+			} catch (Exception e) {
+				g.setColor(Color.green);
+				g.drawLine(0, renderedHeight/2, renderedWidth, renderedHeight/2);
+				System.err.println("Exception "+e+" occured while drawing Fourier bars");
+			}
 		}
 	}
 	
@@ -233,4 +257,80 @@ public class Visualizer extends JComponent {
 			useLines=1;
 		}
 	}
+	
+	public static int[] computeFFT(int[] inputArray, long start, long end) {
+		if (start<0 || end>inputArray.length || start>=end) {
+			throw new IllegalArgumentException("Invalid range specified.");
+		}
+		
+		int n=(int) (end-start);
+		double[] real=new double[n];
+		double[] imag=new double[n];
+		
+		for (int i=0; i<n; i++) {
+			real[i]=inputArray[(int) (start+i)];
+			imag[i]=0.0;
+		}
+		
+		fft(real, imag);
+		
+		int[] magnitudeArray=new int[n];
+		for (int i=0; i<n; i++) {
+			magnitudeArray[i]=(int) Math.round(Math.sqrt(real[i]*real[i]+imag[i]*imag[i]));
+		}
+		
+		return magnitudeArray;
+	}
+	
+	public static void fft(double[] real, double[] imag) {
+		int n=real.length;
+		if (n==1) return;
+		
+		double[] realEven=new double[n/2];
+		double[] imagEven=new double[n/2];
+		double[] realOdd=new double[n/2];
+		double[] imagOdd=new double[n/2];
+		
+		for (int i=0; i<n/2; i++) {
+			realEven[i]=real[i*2];
+			imagEven[i]=imag[i*2];
+			realOdd[i]=real[i*2+1];
+			imagOdd[i]=imag[i*2+1];
+		}
+		
+		fft(realEven, imagEven);
+		fft(realOdd, imagOdd);
+		
+		for (int k=0; k<n/2; k++) {
+			double angle=-2*Math.PI*k/n;
+			double cos=Math.cos(angle);
+			double sin=Math.sin(angle);
+			
+			double tempReal=cos*realOdd[k]-sin*imagOdd[k];
+			double tempImag=sin*realOdd[k]+cos*imagOdd[k];
+			
+			real[k]=realEven[k]+tempReal;
+			imag[k]=imagEven[k]+tempImag;
+			real[k+n/2]=realEven[k]-tempReal;
+			imag[k+n/2]=imagEven[k]-tempImag;
+		}
+	}
+	
+	public static int[] normalize(int[] magnitudeArray, int minOutput, int maxOutput) {
+		int maxValue=Integer.MIN_VALUE;
+		
+		for (int value:magnitudeArray) {
+			if (value>maxValue) {
+				maxValue=value;
+			}
+		}
+		
+		int[] normalizedArray=new int[magnitudeArray.length];
+		for (int i=0; i<magnitudeArray.length; i++) {
+			normalizedArray[i]=(int) ((double) magnitudeArray[i]/maxValue*(maxOutput-minOutput)+minOutput);
+		}
+		
+		return normalizedArray;
+	}
+
 }

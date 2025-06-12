@@ -251,7 +251,7 @@ public class AudioPlayer extends JFrame {
 				} catch (NullPointerException e1) {
 					;
 				} catch (Exception e1) {
-					System.err.println(e1);
+					System.err.println("Exception "+e1+" occured on regular timer update");
 				}
 				timeElapsed.setText(humanTime(currentFrame)+"/"+humanTime(trackLength));
 			}
@@ -322,7 +322,7 @@ public class AudioPlayer extends JFrame {
 			//System.out.println(String.format("paused: %b\n stopped: %b", paused, stopped));
 		} catch (Exception e1) {
 			Toolkit.getDefaultToolkit().beep();
-			System.err.println(e1);
+			System.err.println("Exception "+e1+" occured on play button press");
 		}
 	}
 	
@@ -334,7 +334,7 @@ public class AudioPlayer extends JFrame {
 			loadFile();
 		} catch (Exception e1) {
 			Toolkit.getDefaultToolkit().beep();
-			System.err.println(e1);
+			System.err.println("Exception "+e1+" occured on stop button press");
 		}
 	}
 	
@@ -444,7 +444,7 @@ public class AudioPlayer extends JFrame {
 			try {
 				if (!paused) stopPlay();
 			} catch (Exception e1) {
-				System.err.println(e1);
+				System.err.println("Exception "+e1+" occured trying to stop audio playback after opening file");
 			}
 			currentFrame=0L;
 			loadFile();
@@ -478,14 +478,14 @@ public class AudioPlayer extends JFrame {
 		} catch (Exception e1) {
 			invalidFile=true;
 			Toolkit.getDefaultToolkit().beep();
-			System.err.println(e1);
+			System.err.println("Exception "+e1+" occured while loading file");
 		}
 		
 		try {
 			gainControl=(FloatControl) clip.getControl
 					(FloatControl.Type.MASTER_GAIN);
 		} catch (Exception e) {
-			System.err.println(e);
+			System.err.println("Exception "+e+" occured trying to set gainControl in loadFile()");
 		}
 	}
 	
