@@ -1,6 +1,7 @@
 import java.awt.Color;
 import java.awt.Graphics;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
@@ -19,6 +20,7 @@ public class Visualizer extends JComponent {
 	private int useLines=1;
 	private int bitDepth;
 	private int bitSign;
+	private int barsResolution=128;
 	
 	public Visualizer()
 	throws UnsupportedAudioFileException, IOException {
@@ -169,28 +171,38 @@ public class Visualizer extends JComponent {
 			}
 		} else if (AudioPlayer.visStyle=="Bars") {
 			try {
-				//for (int i=0; i<renderedWidth; i++) {
-					/*double frequency=Math.pow(2, (double) i/renderedFrame*clip.getFormat().getSampleRate()/2000);
+				position=clip.getLongFramePosition();
+				ArrayList<Double> bars=new ArrayList<>();
+				g.setColor(Color.red);
+				for (int i=0; i<renderedWidth; i+=5) { // bar height per frequency
+					int[] fauxFourierCanvas=new int[barsResolution];
+					double frequency=Math.pow(2, (double) i/renderedFrame*clip.getFormat().getSampleRate()/2000);
 					double distance=(clip.getFormat().getSampleRate()/frequency);
-					System.out.println(distance);
 					if (distance<=2) {
 						break;
-					}*/
-				//}
-				position=clip.getLongFramePosition();
-				g.setColor(Color.red);
-				int[] bars=normalize(computeFFT(audioData, position*channels, (position+renderedFrame)*channels), 0, renderedHeight);
-				for (int i=0; i<bars.length; i++) {
-					//System.out.print(bars[i]);
-					//System.out.print(", ");
-					g.drawLine(i, (int) (renderedHeight-((float) Math.log10(bars[i]+1)*renderedHeight/Math.log10(renderedHeight))), i, renderedHeight);
+					}
+					for (int j=0; j<clip.getFormat().getSampleRate()&&j<clip.getFrameLength(); j++) { // run through each sample
+						double xOffset=xLengthOfLine(Math.abs(audioData[(int) (j+position)]-(bitAmplitude/2*bitSign))/(float) bitAmplitude*(barsResolution/2),
+								j/clip.getFormat().getSampleRate()*360*frequency);
+						fauxFourierCanvas[(int) (barsResolution/2+xOffset)]=1;
+					}
+					//System.out.println(String.format("%f revolutions; %f samples apart", frequency, distance));
+					for (int j=0; j<fauxFourierCanvas.length; j++) {
+						//System.out.print(fauxFourierCanvas[j]);
+						//System.out.print(", ");
+						if(fauxFourierCanvas[j]>0) 
+							g.drawLine(i, j, i, j);
+					}
+					//System.out.print("\n");
+					bars.add(calculateCenterOfMass(fauxFourierCanvas));
+					//System.out.println(calculateCenterOfMass(fauxFourierCanvas));
+					//Thread.sleep(500);
 				}
-				System.out.print("\n");
 			} catch (ArrayIndexOutOfBoundsException e) {
-				System.err.println(e);
+				e.printStackTrace();
 			} catch (Exception e) {
-				g.setColor(Color.green);
-				g.drawLine(0, renderedHeight/2, renderedWidth, renderedHeight/2);
+				g.setColor(Color.red);
+				g.drawLine(0, renderedHeight-1, renderedWidth, renderedHeight-1);
 				System.err.println("Exception "+e+" occured while drawing Fourier bars");
 			}
 		}
@@ -258,79 +270,20 @@ public class Visualizer extends JComponent {
 		}
 	}
 	
-	public static int[] computeFFT(int[] inputArray, long start, long end) {
-		if (start<0 || end>inputArray.length || start>=end) {
-			throw new IllegalArgumentException("Invalid range specified.");
+	private double calculateCenterOfMass(int[] array) {
+		double totalMass=0.0;
+		double weightedSum=0.0;
+		
+		for (int i=0; i<array.length; i++) {
+			totalMass+=array[i];
+			weightedSum+=i*array[i];
 		}
 		
-		int n=(int) (end-start);
-		double[] real=new double[n];
-		double[] imag=new double[n];
-		
-		for (int i=0; i<n; i++) {
-			real[i]=inputArray[(int) (start+i)];
-			imag[i]=0.0;
-		}
-		
-		fft(real, imag);
-		
-		int[] magnitudeArray=new int[n];
-		for (int i=0; i<n; i++) {
-			magnitudeArray[i]=(int) Math.round(Math.sqrt(real[i]*real[i]+imag[i]*imag[i]));
-		}
-		
-		return magnitudeArray;
+		return weightedSum/totalMass;
 	}
 	
-	public static void fft(double[] real, double[] imag) {
-		int n=real.length;
-		if (n==1) return;
-		
-		double[] realEven=new double[n/2];
-		double[] imagEven=new double[n/2];
-		double[] realOdd=new double[n/2];
-		double[] imagOdd=new double[n/2];
-		
-		for (int i=0; i<n/2; i++) {
-			realEven[i]=real[i*2];
-			imagEven[i]=imag[i*2];
-			realOdd[i]=real[i*2+1];
-			imagOdd[i]=imag[i*2+1];
-		}
-		
-		fft(realEven, imagEven);
-		fft(realOdd, imagOdd);
-		
-		for (int k=0; k<n/2; k++) {
-			double angle=-2*Math.PI*k/n;
-			double cos=Math.cos(angle);
-			double sin=Math.sin(angle);
-			
-			double tempReal=cos*realOdd[k]-sin*imagOdd[k];
-			double tempImag=sin*realOdd[k]+cos*imagOdd[k];
-			
-			real[k]=realEven[k]+tempReal;
-			imag[k]=imagEven[k]+tempImag;
-			real[k+n/2]=realEven[k]-tempReal;
-			imag[k+n/2]=imagEven[k]-tempImag;
-		}
+	private double xLengthOfLine(double length, double angleDegrees) {
+		double angleRadians=Math.toRadians(angleDegrees-90);
+		return length*Math.cos(angleRadians);
 	}
-	
-	public static int[] normalize(int[] magnitudeArray, int minOutput, int maxOutput) {
-		int maxValue=Integer.MIN_VALUE;
-		
-		for (int value:magnitudeArray) {
-			if (value>maxValue) {
-				maxValue=value;
-			}
-		}
-		
-		int[] normalizedArray=new int[magnitudeArray.length];
-		for (int i=0; i<magnitudeArray.length; i++) {
-			normalizedArray[i]=(int) ((double) magnitudeArray[i]/maxValue*(maxOutput-minOutput)+minOutput);
-		}
-		
-		return normalizedArray;
-	}
-
 }
