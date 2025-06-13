@@ -22,12 +22,6 @@ public class Visualizer extends JComponent {
 	private int bitSign;
 	private int barsResolution=128;
 	
-	public Visualizer()
-	throws UnsupportedAudioFileException, IOException {
-		/*clipToByteArray();
-		byteToIntArray();*/
-	}
-	
 	public void paintComponent(Graphics g) {
 		renderedWidth=AudioPlayer.panelWidth-20;
 		renderedHeight=AudioPlayer.panelHeight-130;
@@ -39,6 +33,7 @@ public class Visualizer extends JComponent {
 			System.err.println("Exception "+e+" occured calculating renderedFrame");
 		}
 		
+		
 		g.setColor(Color.black);
 		g.fillRect(0, 0, renderedWidth, renderedHeight);
 		if (AudioPlayer.visStyle=="Horizontal"
@@ -46,7 +41,13 @@ public class Visualizer extends JComponent {
 			if (AudioPlayer.visStyle=="Oscilloscope" && channels==2) {
 				g.setColor(Color.green);
 				try {
-					position=clip.getLongFramePosition();
+					position=clip.getLongFramePosition()%clip.getFrameLength();
+					int loopedLength;
+					if (AudioPlayer.looped) {
+						loopedLength=audioData.length;
+					} else {
+						loopedLength=audioData.length+renderedWidth;
+					}
 					//System.out.println(position);
 					int renderedSize, renderedOffset;
 					int isOffsetX;
@@ -65,46 +66,46 @@ public class Visualizer extends JComponent {
 							try {
 								g.setColor(Color.getHSBColor(1.0f/3, 1.0f, 
 										1/(((float) (Math.abs(
-											(((int) (((float) audioData[i+2]/bitAmplitude)*renderedSize)
+											(((int) (((float) audioData[(i+2)%loopedLength]/bitAmplitude)*renderedSize)
 										+(renderedSize/2*bitSign))%renderedSize)-
-										(((int) (((float) audioData[i]/bitAmplitude)*renderedSize)
+										(((int) (((float) audioData[i%loopedLength]/bitAmplitude)*renderedSize)
 										+(renderedSize/2*bitSign))%renderedSize)
 												))+
 											(float) (Math.abs(
-												(((int) (((float) audioData[i+3]/bitAmplitude)*renderedSize)
+												(((int) (((float) audioData[(i+3)%loopedLength]/bitAmplitude)*renderedSize)
 											+(renderedSize/2*bitSign))%renderedSize)-
-											(((int) (((float) audioData[i+1]/bitAmplitude)*renderedSize)
+											(((int) (((float) audioData[(i+1)%loopedLength]/bitAmplitude)*renderedSize)
 											+(renderedSize/2*bitSign))%renderedSize)
 													)))/4)));
 							} catch (ArithmeticException e) {
 								g.setColor(Color.getHSBColor(1.0f/3, 0.0f, 1.0f));
 							}
 						}
-						g.drawLine((((int) (((float) audioData[i]/bitAmplitude)*renderedSize)
+						g.drawLine((((int) (((float) audioData[i%loopedLength]/bitAmplitude)*renderedSize)
 								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*isOffsetX,
 								renderedSize-
-								(((int) (((float) audioData[i+1]/bitAmplitude)*renderedSize)
+								(((int) (((float) audioData[(i+1)%loopedLength]/bitAmplitude)*renderedSize)
 								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*(1-isOffsetX),
-								(((int) (((float) audioData[i+useLines*2]/bitAmplitude)*renderedSize)
+								(((int) (((float) audioData[(i+useLines*2)%loopedLength]/bitAmplitude)*renderedSize)
 								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*isOffsetX,
 								renderedSize-
-								(((int) (((float) audioData[i+1+useLines*2]/bitAmplitude)*renderedSize)
+								(((int) (((float) audioData[(i+1+useLines*2)%loopedLength]/bitAmplitude)*renderedSize)
 								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*(1-isOffsetX));
 						if (useLines==1) {
-							g.drawLine((((int) (((float) audioData[i]/bitAmplitude)*renderedSize)
+							g.drawLine((((int) (((float) audioData[i%loopedLength]/bitAmplitude)*renderedSize)
 								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*isOffsetX,
 								renderedSize-
-								(((int) (((float) audioData[i+1]/bitAmplitude)*renderedSize)
+								(((int) (((float) audioData[(i+1)%loopedLength]/bitAmplitude)*renderedSize)
 								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*(1-isOffsetX),
-								(((int) (((float) audioData[i]/bitAmplitude)*renderedSize)
+								(((int) (((float) audioData[i%loopedLength]/bitAmplitude)*renderedSize)
 								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*isOffsetX,
 								renderedSize-
-								(((int) (((float) audioData[i+1]/bitAmplitude)*renderedSize)
+								(((int) (((float) audioData[(i+1)%loopedLength]/bitAmplitude)*renderedSize)
 								+(renderedSize/2*bitSign))%renderedSize)+renderedOffset*(1-isOffsetX));
 						}
 					}
 				} catch (ArrayIndexOutOfBoundsException e) {
-					System.err.println(e);
+					e.printStackTrace();
 				} catch (Exception e) {
 					g.setColor(Color.green);
 					g.drawLine(renderedWidth/2, renderedHeight/2, renderedWidth/2, renderedHeight/2);
@@ -112,7 +113,13 @@ public class Visualizer extends JComponent {
 				}
 			} else {
 				try {
-					position=clip.getLongFramePosition();
+					position=clip.getLongFramePosition()%clip.getFrameLength();
+					int loopedLength;
+					if (AudioPlayer.looped) {
+						loopedLength=audioData.length;
+					} else {
+						loopedLength=audioData.length+renderedWidth;
+					}
 					//System.out.println(position);
 					
 					//g.drawLine(0, 0, renderedWidth, renderedHeight); // display size test
@@ -134,76 +141,40 @@ public class Visualizer extends JComponent {
 									g.setColor(Color.getHSBColor(1.0f/3, 1.0f,
 											1/((float) Math.abs(
 												(renderedHeight-
-												(((int) (((float) audioData[i]/bitAmplitude)*renderedHeight)
+												(((int) (((float) audioData[i%loopedLength]/bitAmplitude)*renderedHeight)
 												+(renderedHeight/2*bitSign))%renderedHeight))
 													-(renderedHeight-
-												(((int) (((float) audioData[i+channels]/bitAmplitude)*renderedHeight)
+												(((int) (((float) audioData[(i+channels)%loopedLength]/bitAmplitude)*renderedHeight)
 												+(renderedHeight/2*bitSign))%renderedHeight))
 											)/8+1)));
 								} else {
 									g.setColor(Color.getHSBColor((float) (c-1)/channels/(c-1), 1.0f,
 										1/((float) Math.abs(
 											(renderedHeight-
-											(((int) (((float) audioData[i]/bitAmplitude)*renderedHeight)
+											(((int) (((float) audioData[i%loopedLength]/bitAmplitude)*renderedHeight)
 											+(renderedHeight/2*bitSign))%renderedHeight))
 												-(renderedHeight-
-											(((int) (((float) audioData[i+channels]/bitAmplitude)*renderedHeight)
+											(((int) (((float) audioData[(i+channels)%loopedLength]/bitAmplitude)*renderedHeight)
 											+(renderedHeight/2*bitSign))%renderedHeight))
 										)/8+1)));
 								}
 							}
 							g.drawLine(i/channels-position.intValue(), renderedHeight-
-									(((int) (((float) audioData[i]/bitAmplitude)*renderedHeight)
+									(((int) (((float) audioData[i%loopedLength]/bitAmplitude)*renderedHeight)
 									+(renderedHeight/2*bitSign))%renderedHeight),
 								i/channels-position.intValue()+useLines, renderedHeight-
-									(((int) (((float) audioData[i+useLines*channels]/bitAmplitude)*renderedHeight)
+									(((int) (((float) audioData[(i+useLines*channels)%loopedLength]/bitAmplitude)*renderedHeight)
 									+(renderedHeight/2*bitSign))%renderedHeight));
 						}
 					}
 					//System.out.println(audioData);
 				} catch (ArrayIndexOutOfBoundsException e) {
-					System.err.println(e);
+					e.printStackTrace();
 				} catch (Exception e) {
 					g.setColor(Color.green);
 					g.drawLine(0, renderedHeight/2, renderedWidth, renderedHeight/2);
 					System.err.println("Exception "+e+" occured while drawing horizontal oscilloscope");
 				}
-			}
-		} else if (AudioPlayer.visStyle=="Bars") {
-			try {
-				position=clip.getLongFramePosition();
-				ArrayList<Double> bars=new ArrayList<>();
-				g.setColor(Color.red);
-				for (int i=0; i<renderedWidth; i+=5) { // bar height per frequency
-					int[] fauxFourierCanvas=new int[barsResolution];
-					double frequency=Math.pow(2, (double) i/renderedFrame*clip.getFormat().getSampleRate()/2000);
-					double distance=(clip.getFormat().getSampleRate()/frequency);
-					if (distance<=2) {
-						break;
-					}
-					for (int j=0; j<clip.getFormat().getSampleRate()&&j<clip.getFrameLength(); j++) { // run through each sample
-						double xOffset=xLengthOfLine(Math.abs(audioData[(int) (j+position)]-(bitAmplitude/2*bitSign))/(float) bitAmplitude*(barsResolution/2),
-								j/clip.getFormat().getSampleRate()*360*frequency);
-						fauxFourierCanvas[(int) (barsResolution/2+xOffset)]=1;
-					}
-					//System.out.println(String.format("%f revolutions; %f samples apart", frequency, distance));
-					for (int j=0; j<fauxFourierCanvas.length; j++) {
-						//System.out.print(fauxFourierCanvas[j]);
-						//System.out.print(", ");
-						if(fauxFourierCanvas[j]>0) 
-							g.drawLine(i, j, i, j);
-					}
-					//System.out.print("\n");
-					bars.add(calculateCenterOfMass(fauxFourierCanvas));
-					//System.out.println(calculateCenterOfMass(fauxFourierCanvas));
-					//Thread.sleep(500);
-				}
-			} catch (ArrayIndexOutOfBoundsException e) {
-				e.printStackTrace();
-			} catch (Exception e) {
-				g.setColor(Color.red);
-				g.drawLine(0, renderedHeight-1, renderedWidth, renderedHeight-1);
-				System.err.println("Exception "+e+" occured while drawing Fourier bars");
 			}
 		}
 	}
@@ -268,22 +239,5 @@ public class Visualizer extends JComponent {
 		} else {
 			useLines=1;
 		}
-	}
-	
-	private double calculateCenterOfMass(int[] array) {
-		double totalMass=0.0;
-		double weightedSum=0.0;
-		
-		for (int i=0; i<array.length; i++) {
-			totalMass+=array[i];
-			weightedSum+=i*array[i];
-		}
-		
-		return weightedSum/totalMass;
-	}
-	
-	private double xLengthOfLine(double length, double angleDegrees) {
-		double angleRadians=Math.toRadians(angleDegrees-90);
-		return length*Math.cos(angleRadians);
 	}
 }

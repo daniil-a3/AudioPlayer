@@ -3,6 +3,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
+import javax.swing.KeyStroke;
 import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
@@ -16,6 +17,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -29,10 +31,12 @@ import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.LineEvent;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
+import javax.swing.AbstractAction;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 
 public class AudioPlayer extends JFrame {
@@ -50,6 +54,7 @@ public class AudioPlayer extends JFrame {
 	boolean muted=false;
 	boolean invalidFile=false;
 	boolean sliderUsed=false;
+	static boolean looped=false;
 	FloatControl gainControl;
 	Visualizer audioVis;
 	static String visStyle="Horizontal";
@@ -64,16 +69,15 @@ public class AudioPlayer extends JFrame {
 	JButton backButton, playButton, stopButton, nextButton,
 	muteButton, openButton;
 	JComboBox visStyleBox;
-	String visOptions[]={"Horizontal", "Oscilloscope", "Bars"};
+	String visOptions[]={"Horizontal", "Oscilloscope"};
 	JCheckBox useLines=new JCheckBox("Draw lines");
+	JCheckBox useLoop=new JCheckBox("Loop");
 	JSlider playPos=new JSlider(JSlider.HORIZONTAL,0,0,0);
 	JSlider volSlider=new JSlider(JSlider.HORIZONTAL,0,100,0);
 	
-	ImageIcon backIcon=new ImageIcon("res\\control_previous.png");
 	ImageIcon playIcon=new ImageIcon("res\\control_play.png");
 	ImageIcon pauseIcon=new ImageIcon("res\\control_pause.png");
 	ImageIcon stopIcon=new ImageIcon("res\\control_stop.png");
-	ImageIcon nextIcon=new ImageIcon("res\\control_next.png");
 	ImageIcon muteIcon=new ImageIcon("res\\sound.png");
 	ImageIcon unmuteIcon=new ImageIcon("res\\nosound.png");
 	ImageIcon openIcon=new ImageIcon("res\\control_eject.png");
@@ -109,6 +113,7 @@ public class AudioPlayer extends JFrame {
 						if (trackLength!=null) 
 							currentFrame=(long) source.getValue();
 						clip.setMicrosecondPosition(source.getValue());
+						audioVis.repaint();
 					} catch (Exception e1) {
 						Toolkit.getDefaultToolkit().beep();
 					}
@@ -126,19 +131,20 @@ public class AudioPlayer extends JFrame {
 			}
 		});
 		
-		backButton=new JButton(backIcon);
-		backButton.addMouseListener(new MouseAdapter() {
-			public void mouseClicked(MouseEvent e) {
-				backButton_mouseClicked(e);
-			}
-		});
-		
 		playButton=new JButton(playIcon);
 		playButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				playButton_mouseClicked(e);
 			}
 		});
+		playButton.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "play");
+		playButton.getActionMap().put("play", new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				playButton.doClick();
+				playButton_mouseClicked(null);
+			}
+		});
+		
 		
 		stopButton=new JButton(stopIcon);
 		stopButton.addMouseListener(new MouseAdapter() {
@@ -146,11 +152,11 @@ public class AudioPlayer extends JFrame {
 				stopButton_mouseClicked(e);
 			}
 		});
-		
-		nextButton=new JButton(nextIcon);
-		nextButton.addMouseListener(new MouseAdapter() {
-			public void mouseClicked(MouseEvent e) {
-				nextButton_mouseClicked(e);
+		stopButton.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), "stop");
+		stopButton.getActionMap().put("stop", new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				stopButton.doClick();
+				stopButton_mouseClicked(null);
 			}
 		});
 		
@@ -158,6 +164,13 @@ public class AudioPlayer extends JFrame {
 		muteButton.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				muteButton_mouseClicked(e);
+			}
+		});
+		muteButton.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_M, 0), "mute");
+		muteButton.getActionMap().put("mute", new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				muteButton.doClick();
+				muteButton_mouseClicked(null);
 			}
 		});
 		
@@ -172,18 +185,34 @@ public class AudioPlayer extends JFrame {
 				}
 			}
 		});
+		openButton.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_O, 0), "open");
+		openButton.getActionMap().put("open", new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				openButton.doClick();
+				try {
+					openButton_mouseClicked(null);
+				} catch (UnsupportedAudioFileException
+						| IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+		});
 		
 		visStyleBox=new JComboBox(visOptions);
+		visStyleBox.setFocusable(false);
 		visStyleBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
 				visStyle=(String) visStyleBox.getSelectedItem();
-				if (visStyle=="Bars") {
-					useLines.setEnabled(false);
-				} else {
-					useLines.setEnabled(true);
-				}
 				audioVis.repaint();
 		}});
+		visStyleBox.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_V, 0), "vis");
+		visStyleBox.getActionMap().put("vis", new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				int currentIndex=visStyleBox.getSelectedIndex();
+				int itemCount=visStyleBox.getItemCount();
+				visStyleBox.setSelectedIndex((currentIndex+1)%itemCount);
+			}
+		});
 		
 		useLines.setSelected(true);
 		useLines.addItemListener(new ItemListener() {
@@ -191,22 +220,48 @@ public class AudioPlayer extends JFrame {
 				audioVis.toggleLines();
 				audioVis.repaint();
 		}});
+		useLines.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0), "lines");
+		useLines.getActionMap().put("lines", new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				useLines.doClick();
+			}
+		});
+		
+		useLoop.setSelected(false);
+		useLoop.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				if (useLoop.isSelected()) {
+					looped=true;
+					if (!stopped && !paused)
+						clip.loop(clip.LOOP_CONTINUOUSLY);
+				} else {
+					looped=false;
+					if (!stopped && !paused)
+						clip.loop(0);
+				}
+			audioVis.repaint();
+		}});
+		useLoop.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_L, 0), "loop");
+		useLoop.getActionMap().put("loop", new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				useLoop.doClick();
+			}
+		});
 		
 		contentPane.addComponentListener(new ComponentAdapter() {
 			public void componentResized(ComponentEvent e) {
 				panelWidth=contentPane.getWidth();
 				panelHeight=contentPane.getHeight();
-
+				
 				currentTrack.setBounds(10, 10, panelWidth-10, 20);
 				timeElapsed.setBounds(10, panelHeight-100, panelWidth-10, 20);
 				playPos.setBounds(10, panelHeight-80, panelWidth-20, 30);
 				volSlider.setBounds(panelWidth-190, panelHeight-40, 100, 30);
-				backButton.setBounds(10, panelHeight-40, 30, 30);
-				playButton.setBounds(50, panelHeight-40, 30, 30);
-				stopButton.setBounds(90, panelHeight-40, 30, 30);
-				nextButton.setBounds(130, panelHeight-40, 30, 30);
-				visStyleBox.setBounds(170, panelHeight-40, 90, 30);
-				useLines.setBounds(270, panelHeight-40, 90, 30);
+				playButton.setBounds(10, panelHeight-40, 30, 30);
+				stopButton.setBounds(50, panelHeight-40, 30, 30);
+				visStyleBox.setBounds(90, panelHeight-40, 90, 30);
+				useLines.setBounds(190, panelHeight-40, 90, 30);
+				useLoop.setBounds(290, panelHeight-40, 90, 30);
 				muteButton.setBounds(panelWidth-80, panelHeight-40, 30, 30);
 				openButton.setBounds(panelWidth-40, panelHeight-40, 30, 30);
 				audioVis.setBounds(10, 30, panelWidth-20, panelHeight-130);
@@ -216,9 +271,9 @@ public class AudioPlayer extends JFrame {
 		Timer timer=new Timer(updateFrequencyMs, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					if (!paused)
-						currentFrame=clip.getMicrosecondPosition();
 					trackLength=clip.getMicrosecondLength();
+					if (!paused)
+						currentFrame=clip.getMicrosecondPosition()%trackLength;
 					playPos.setMaximum(Math.toIntExact(trackLength));
 					playPos.setValue(Math.toIntExact(currentFrame));
 					if (trackLength<=10000000) { // 10 seconds
@@ -260,10 +315,8 @@ public class AudioPlayer extends JFrame {
 		
 		/// DO NOT FORGET ABOUT THESE!!!!!!!!!!
 		contentPane.add(currentTrack);
-		contentPane.add(backButton);
 		contentPane.add(playButton);
 		contentPane.add(stopButton);
-		contentPane.add(nextButton);
 		contentPane.add(muteButton);
 		contentPane.add(openButton);
 		contentPane.add(timeElapsed);
@@ -272,10 +325,7 @@ public class AudioPlayer extends JFrame {
 		contentPane.add(audioVis);
 		contentPane.add(visStyleBox);
 		contentPane.add(useLines);
-	}
-	
-	private void backButton_mouseClicked(MouseEvent e) {
-		Toolkit.getDefaultToolkit().beep();
+		contentPane.add(useLoop);
 	}
 	
 	private void playButton_mouseClicked(MouseEvent e) {
@@ -288,6 +338,9 @@ public class AudioPlayer extends JFrame {
 					clip.setMicrosecondPosition(currentFrame);
 				}
 				clip.start();
+				if (looped) {
+					clip.loop(clip.LOOP_CONTINUOUSLY);
+				}
 				stopped=false;
 				playButton.setIcon(pauseIcon);
 				clip.addLineListener(e1 -> {
@@ -305,6 +358,9 @@ public class AudioPlayer extends JFrame {
 						clip.setMicrosecondPosition(currentFrame);
 					}
 					clip.start();
+					if (looped) {
+						clip.loop(clip.LOOP_CONTINUOUSLY);
+					}
 					playButton.setIcon(pauseIcon);
 					clip.addLineListener(e1 -> {
 						if (e1.getType()==LineEvent.Type.STOP) {
@@ -315,7 +371,7 @@ public class AudioPlayer extends JFrame {
 					//pauses
 					paused=true;
 					playButton.setIcon(playIcon);
-					currentFrame=clip.getMicrosecondPosition();
+					currentFrame=clip.getMicrosecondPosition()%trackLength;
 					clip.stop();
 				}
 			}
@@ -336,10 +392,6 @@ public class AudioPlayer extends JFrame {
 			Toolkit.getDefaultToolkit().beep();
 			System.err.println("Exception "+e1+" occured on stop button press");
 		}
-	}
-	
-	private void nextButton_mouseClicked(MouseEvent e) {
-		Toolkit.getDefaultToolkit().beep();
 	}
 	
 	private void muteButton_mouseClicked(MouseEvent e) {
